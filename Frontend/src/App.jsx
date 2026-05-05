@@ -48,7 +48,6 @@ function App() {
       <Route path="/" element={<Home />} />
       <Route path="/drive" element={<DrivePreview />} />
       <Route path="/interviewPanel" element={<InterviewPanel />} />
-      <Route path="/practiceset" element={<PythonPracticeApp />} />
       <Route path="/domainselector" element={<DomainSelectorPage />} />
       {/* <Route path="/dashboard" element={<Dashboard />} /> */}
       <Route path="/profile" element={<ProfileDashboard />} />
@@ -66,6 +65,16 @@ function App() {
           </ProtectedRoute>
         }
       />
+
+      <Route 
+        path="/practiceset" 
+        element={
+          <ProtectedRoute>
+            <PythonPracticeApp />
+          </ProtectedRoute>
+        } 
+      />
+
 
       {/* Default redirect */}
       <Route

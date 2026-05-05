@@ -41,9 +41,11 @@ export default function Navbar() {
 
                     {user ? (
                         <>
-                            <PrimaryButton className="max-sm:text-xs hidden sm:inline-block">
-                                Welcome, {user?.firstName}
-                            </PrimaryButton>
+                            <a href="/profile">
+                                <PrimaryButton className="max-sm:text-xs hidden sm:inline-block">
+                                    Welcome, {user?.firstName}
+                                </PrimaryButton>
+                            </a>
 
                             <button
                                 onClick={logout}

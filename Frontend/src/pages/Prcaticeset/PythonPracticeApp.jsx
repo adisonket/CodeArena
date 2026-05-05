@@ -1,9 +1,12 @@
-import QuestionsPanel from '../../components/QuestionsPanel';
+import { useState } from 'react';
+import QuestionsPanel, { questions } from '../../components/QuestionsPanel';
 import CodeEditor from '../../components/CodeEditor';
 
 const PythonPracticeApp = () => {
+  const [currentQuestion, setCurrentQuestion] = useState(questions[0]);
+
   return (
-    <div 
+    <div
       className="h-screen grid grid-cols-1 lg:grid-cols-[560px_minmax(0,1fr)] overflow-hidden text-white font-['Inter'] antialiased"
       style={{
         background: `
@@ -12,8 +15,8 @@ const PythonPracticeApp = () => {
         `
       }}
     >
-      <QuestionsPanel />
-      <CodeEditor />
+      <QuestionsPanel onQuestionChange={setCurrentQuestion} />
+      <CodeEditor currentQuestion={currentQuestion} />
     </div>
   );
 };
