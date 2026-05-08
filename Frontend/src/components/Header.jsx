@@ -40,33 +40,7 @@ const Header = () => {
                     CodeArena
                 </a>
 
-                <div className="flex items-center border border-gray-600 rounded-lg overflow-hidden shadow-sm relative">
-
-                    <input
-                        type="text"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Enter Drive Id"
-                        className="px-3 py-2 outline-none text-sm w-52 pr-8 bg-transparent text-white"
-                    />
-
-                    {search && (
-                        <button
-                            onClick={() => setSearch("")}
-                            className="absolute right-14 text-gray-400 hover:text-white"
-                        >
-                            <X size={16} />
-                        </button>
-                    )}
-
-                    <button
-                        onClick={() => setShowModal(true)}
-                        className="bg-slate-800 text-white px-4 py-2 flex items-center justify-center"
-                    >
-                        <Search size={18} />
-                    </button>
-
-                </div>
+                
 
                 {isLoggedIn && (
                     <div className="relative" ref={dropdownRef}>
@@ -126,58 +100,6 @@ const Header = () => {
                 )}
 
             </header>
-
-            {showModal && (
-                <div className="fixed inset-0 flex items-center justify-center z-50">
-                    <div
-                        className="absolute inset-0 bg-black/40 backdrop-blur-md"
-                        onClick={() => setShowModal(false)}
-                    />
-                    <div
-                        className="relative w-[500px] rounded-3xl overflow-hidden shadow-xl"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="absolute inset-0 opacity-30">
-                            <SoftBackdrop />
-                        </div>
-                        <div className="relative z-10 p-6 bg-white/20 backdrop-blur-2xl rounded-3xl">
-                            <div className="flex items-center gap-2 border border-white/20 rounded-lg px-3 py-2 mb-4">
-                                <Search size={18} />
-                                <span className="text-white font-medium">242769</span>
-                            </div>
-                            <div className="flex items-center gap-3 mb-3">
-                                <div className="p-2 rounded-full bg-white/20 flex items-center justify-center">
-                                    <FileText size={30} className="text-white" strokeWidth={2} />
-                                </div>
-                                <div className="leading-tight">
-                                    <h2 className="text-lg font-bold text-white">
-                                        Techno India Group of Institutions Kolkata Bot Assessment 24th Feb
-                                    </h2>
-                                    <p className="text-sm text-white/70">
-                                        February 24, 2026
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="space-y-2 text-sm text-white">
-                                <p>✔ Questions</p>
-                                <p>✔ Start Time: <b>10:00 AM IST</b></p>
-                                <p>✔ Duration: -</p>
-                            </div>
-                            <div className="flex justify-end gap-3 mt-6">
-                                <button
-                                    onClick={() => setShowModal(false)}
-                                    className="px-4 py-2 border text-white border-white/30 hover:bg-white/10 transition-colors rounded-lg"
-                                >
-                                    Cancel
-                                </button>
-                                <button className="px-4 py-2 bg-gray-300 text-gray-600 rounded-lg cursor-not-allowed">
-                                    Register
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </>
     );
 };
