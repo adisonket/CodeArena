@@ -5,76 +5,261 @@ import axios from 'axios';
 
 const router = express.Router();
 
+
+// =====================================
 // POST /api/practice/submit
+// =====================================
 router.post('/submit', protect, async (req, res) => {
+
   try {
-    const { questionId, questionTitle, code, output } = req.body;
 
-    // --- CodeRabbit-style AI review via Gemini (FREE) ---
+    // =====================================
+    // Extract Request Data
+    // =====================================
+    const {
+      questionId,
+      questionTitle,
+      question,
+      type,
+      options,
+      correctAnswer,
+      selectedAnswer,
+      code,
+      output,
+      language
+    } = req.body;
+
+    // =====================================
+    // MCQ Evaluation
+    // =====================================
+    const isCorrectMCQ =
+      selectedAnswer === correctAnswer;
+
+    // =====================================
+    // Gemini AI Review
+    // =====================================
     let aiReview = '';
+
     try {
-      const prompt = `You are CodeRabbit, an expert code reviewer. A student submitted the following Python code for a practice question.
 
-Question: "${questionTitle}"
+      let prompt = '';
 
-Code:
-\`\`\`python
-${code}
-\`\`\`
+      // =====================================
+      // MCQ QUESTIONS
+      // =====================================
+      if ((type || 'MCQ') === 'MCQ') {
 
-Output produced:
-${output || '(no output)'}
+        prompt = `
+          You are an expert technical interviewer.
 
-Provide a concise code review covering:
-1. **Correctness** – Does it solve the problem correctly?
-2. **Code Quality** – Style, naming, readability
-3. **Optimizations** – Any improvements?
-4. **Verdict** – Pass / Needs Improvement
+          Evaluate this MCQ assessment submission.
 
-Keep the review under 200 words. Be direct and helpful.`;
+          # Question
+          ${question || questionTitle || 'Practice Question'}
 
+          # Options
+          ${options?.join('\n') || 'No options provided'}
+
+          # Correct Answer
+          ${correctAnswer || 'Not provided'}
+
+          # User Selected Answer
+          ${selectedAnswer || 'No answer selected'}
+
+          # MCQ Result
+          ${isCorrectMCQ ? 'Correct' : 'Incorrect'}
+
+          Analyze the submission in this exact format:
+
+          # MCQ Evaluation
+
+          - Was the selected answer correct?
+          - Explain the correct answer briefly.
+
+          # Knowledge Assessment
+
+          - What concept does this question test?
+          - What mistake did the candidate make (if any)?
+
+          # Final Score
+
+          Give a score out of 10.
+
+          # Verdict
+
+          Choose one:
+          - Excellent
+          - Good
+          - Needs Improvement
+
+          IMPORTANT:
+          - Return valid Markdown
+          - Keep response concise
+          - Be beginner friendly
+        `;
+
+      }
+
+      // =====================================
+      // CODING QUESTIONS
+      // =====================================
+      else {
+
+        prompt = `
+          You are an expert coding interviewer and technical evaluator.
+
+          Evaluate the following coding submission.
+
+          # Question
+          ${question || questionTitle || 'Coding Question'}
+
+          # Submitted Code
+          ${code || 'No code submitted'}
+
+          # Program Output
+          ${output || '(no output)'}
+
+          # Programming Language
+          ${language || 'Unknown'}
+
+          Analyze the submission in this exact format:
+
+          # Code Correctness
+
+          - Does the code solve the problem?
+          - Does the output match expectations?
+
+          # Code Quality
+
+          - Readability
+          - Naming
+          - Best practices
+          - Structure
+
+          # Optimization
+
+          - Better approaches if applicable
+          - Time complexity
+          - Space complexity
+
+          # Final Score
+
+          Give a score out of 10.
+
+          # Verdict
+
+          Choose one:
+          - Excellent
+          - Good
+          - Needs Improvement
+
+          IMPORTANT:
+          - Return valid Markdown
+          - Keep response concise
+          - Be beginner friendly
+        `;
+      }
+
+      // =====================================
+      // Gemini API Request
+      // =====================================
       const geminiRes = await axios.post(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
         {
-          contents: [{ parts: [{ text: prompt }] }]
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt
+                }
+              ]
+            }
+          ]
         },
-        { headers: { 'Content-Type': 'application/json' } }
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
       );
 
       aiReview =
         geminiRes.data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-        'No review generated.';
+        'No AI review generated.';
 
     } catch (aiErr) {
-      console.error('Gemini review failed:', aiErr.response?.data || aiErr.message);
+
+      console.error(
+        'Gemini review failed:',
+        JSON.stringify(aiErr.response?.data, null, 2)
+      );
+
       aiReview = 'AI review unavailable right now.';
     }
 
+    // =====================================
+    // Save Submission
+    // =====================================
     const submission = await PracticeSubmission.create({
       user: req.user._id,
+
       questionId,
-      questionTitle,
+
+      questionTitle:
+        question || questionTitle,
+
       code,
+      language,
       output,
+
       aiReview
     });
 
-    res.status(201).json({ success: true, submission });
+    // =====================================
+    // Response
+    // =====================================
+    res.status(201).json({
+      success: true,
+      isCorrectMCQ,
+      submission
+    });
 
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
   }
 });
 
+
+// =====================================
 // GET /api/practice/submissions
+// =====================================
 router.get('/submissions', protect, async (req, res) => {
+
   try {
+
     const submissions = await PracticeSubmission
       .find({ user: req.user._id })
       .sort({ submittedAt: -1 });
-    res.json({ success: true, submissions });
+
+    res.json({
+      success: true,
+      submissions
+    });
+
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
   }
 });
 
