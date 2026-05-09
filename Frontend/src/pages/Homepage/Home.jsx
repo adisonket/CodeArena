@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import LoadingBar from "react-top-loading-bar";
 
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
@@ -12,23 +13,32 @@ import CTA from "../../components/CTA";
 
 export default function Home() {
     const [msg, setMsg] = useState("Loading...");
+    const ref = useRef(null);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await fetch("/api/test");
+                ref.current.continuousStart();
+                const res = await fetch("http://localhost:4000/api/test");
                 const data = await res.json();
                 setMsg(data.message);
+                ref.current.complete();
             } catch (err) {
                 console.error(err);
+                ref.current.complete();
             }
         };
-
         fetchData();
     }, []);
 
     return (
         <>
+            <LoadingBar
+                ref={ref}
+                color="#6366f1"
+                height={3}
+            />
+
             <SoftBackdrop />
             <LenisScroll />
             <Navbar />

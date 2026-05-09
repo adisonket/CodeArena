@@ -311,7 +311,13 @@ const ResultsTable = ({ results }) => (
 
 const DriveModal = ({ onClose, onSuccess, token }) => {
   const [formData, setFormData] = useState({
-    hiringPositionName: "", driveDate: "", driveType: "mcq", timeDurationInMin: "", numberOfQuestions: "", marksPerQuestion: ""
+    hiringPositionName: "",
+    driveDate: "",
+    driveType: "mcq",
+    difficulty: "Intermediate",
+    timeDurationInMin: "",
+    numberOfQuestions: "",
+    marksPerQuestion: ""
   });
 
   const handleSubmit = async (e) => {
@@ -365,10 +371,32 @@ const DriveModal = ({ onClose, onSuccess, token }) => {
               <input required type="datetime-local" name="driveDate" onChange={handleChange} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:border-indigo-500 [color-scheme:dark]" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Type</label>
-              <select name="driveType" onChange={handleChange} className="w-full bg-[#1a1c23] border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:border-indigo-500">
+              <label className="block text-xs font-bold text-slate-400 uppercase mb-1"> Type</label>
+
+              <select
+                name="driveType"
+                onChange={handleChange}
+                className="w-full bg-[#1a1c23] border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:border-indigo-500"
+              >
                 <option value="mcq">MCQ</option>
                 <option value="code base">Code Base</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
+                Difficulty
+              </label>
+
+              <select
+                name="difficulty"
+                value={formData.difficulty}
+                onChange={handleChange}
+                className="w-full bg-[#1a1c23] border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:border-indigo-500"
+              >
+                <option value="Beginner">Beginner</option>
+                <option value="Intermediate">Intermediate</option>
+                <option value="Advanced">Advanced</option>
               </select>
             </div>
             <div>

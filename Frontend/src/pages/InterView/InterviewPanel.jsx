@@ -107,9 +107,9 @@ const DeviceSetupModal = ({ isOpen, onClose, onConfirm, isModelsLoaded }) => {
               )}
             </div>
             <div className="mt-8 flex gap-3">
-              <button 
-                onClick={onConfirm} 
-                disabled={!!error || !isModelsLoaded} 
+              <button
+                onClick={onConfirm}
+                disabled={!!error || !isModelsLoaded}
                 className="flex-1 py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-[10px] font-black uppercase tracking-widest transition-all active:scale-95"
               >
                 {!isModelsLoaded ? "Loading AI..." : "Start Interview"}
@@ -123,21 +123,7 @@ const DeviceSetupModal = ({ isOpen, onClose, onConfirm, isModelsLoaded }) => {
   );
 };
 
-const generateQuestions = (drive) => {
-  if (!drive) return [];
-  const count = drive.numberOfQuestions || 5;
-  if (drive.driveType === "mcq") {
-    return Array.from({ length: count }).map((_, i) => ({
-      id: i + 1,
-      question: `AI Generated Technical Assessment Question ${i + 1}: What is the time complexity of binary search?`,
-      options: ["O(1)", "O(n)", "O(n log n)", "O(log n)"]
-    }));
-  }
-  return Array.from({ length: count }).map((_, i) => ({
-    id: i + 1,
-    question: `Write a Python function to solve algorithmic challenge ${i + 1}. Ensure to handle all edge cases.`
-  }));
-};
+
 
 const formatTime = (seconds) => {
   const h = Math.floor(seconds / 3600);
@@ -154,10 +140,11 @@ const InterviewPanel = () => {
 
   const [timeLeft, setTimeLeft] = useState(drive ? drive.timeDurationInMin * 60 : 0);
   const [questions, setQuestions] = useState([]);
+  const [loadingQuestions, setLoadingQuestions] = useState(true);
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState({});
   const [codeData, setCodeData] = useState({});
-  
+
   const [outputResult, setOutputResult] = useState("");
   const [runStatus, setRunStatus] = useState("idle");
   const [metaText, setMetaText] = useState("");
@@ -192,17 +179,85 @@ const InterviewPanel = () => {
   }, []);
 
   useEffect(() => {
-    if (drive) {
-      setQuestions(generateQuestions(drive));
-      if (drive.driveType === "code base") {
-        setCodeData({ 0: "# Write and run Python here" });
+
+    const fetchAIQuestions = async () => {
+
+      if (!drive) {
+        navigate("/");
+        return;
       }
-    } else navigate("/"); 
+
+      setLoadingQuestions(true);
+      try {
+
+        const response = await fetch(
+          `${import.meta.env.VITE_API_URL}/api/ai/generate`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              domain: drive.hiringPositionName,
+              difficulty: "Intermediate",
+              type:
+                drive.driveType.toLowerCase() === "mcq"
+                  ? "MCQ"
+                  : "CODING",
+              count: drive.numberOfQuestions,
+            }),
+          }
+        );
+
+        const data = await response.json();
+
+        if (data.success) {
+
+          if (Array.isArray(data.questions) && data.questions.length > 0) {
+
+            setQuestions(
+              data.questions.map((q, index) => ({
+                id: index + 1,
+                ...q,
+              }))
+            );
+
+          } else {
+
+            console.error("No questions returned from AI");
+
+          }
+
+        } else {
+
+          console.error("Failed to generate AI questions");
+
+        }
+
+        if (drive.driveType.toLowerCase() === "code base") {
+          setCodeData({
+            0: "# Write and run Python here\n\n",
+          });
+        }
+
+      } catch (error) {
+
+        console.error("AI Question Fetch Error:", error);
+
+      } finally {
+
+        setLoadingQuestions(false);
+
+      }
+    };
+
+    fetchAIQuestions();
+
   }, [drive, navigate]);
 
   useEffect(() => {
     const loadSkulpt = async () => {
-      if (!skulptLoaded.current && drive?.driveType === "code base") {
+      if (!skulptLoaded.current && drive?.driveType?.toLowerCase() === "code base") {
         const [skulpt, stdlib] = await Promise.all([
           import('https://cdn.skypack.dev/skulpt'),
           import('https://cdn.skypack.dev/skulpt-stdlib')
@@ -227,9 +282,9 @@ const InterviewPanel = () => {
 
   const submitAssessment = async (finalStatus = "Completed", reason = "") => {
     setStatus("idle");
-    
-    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-    
+
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => { });
+
     const timeTaken = (drive.timeDurationInMin * 60) - timeLeft;
     const mockScore = Math.floor(Math.random() * ((drive.totalMarks || 100) + 1));
 
@@ -237,9 +292,9 @@ const InterviewPanel = () => {
       const token = localStorage.getItem("token");
       await fetch("http://localhost:4000/api/auth/submit-result", {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}` 
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify({
           driveId: drive._id,
@@ -250,13 +305,13 @@ const InterviewPanel = () => {
           terminationReason: reason
         })
       });
-      
+
       if (finalStatus === "Terminated") {
         triggerAlert("Session Terminated", `Your assessment was terminated due to security or environment violations. (${reason})`, "danger", () => navigate("/drive"));
       } else {
         triggerAlert("Assessment Finished", "Your responses and security metrics have been saved. You may safely close this tab.", "info", () => navigate("/drive"));
       }
-      
+
     } catch (err) {
       console.error("Failed to submit", err);
     }
@@ -272,7 +327,7 @@ const InterviewPanel = () => {
     if (!editorRef.current || !lineNumbersRef.current) return;
     const count = Math.max(1, currentCode.split('\n').length);
     lineNumbersRef.current.innerHTML = Array.from(
-      { length: count }, 
+      { length: count },
       (_, i) => `<div class="pr-4">${i + 1}</div>`
     ).join('');
   }, [currentCode]);
@@ -292,9 +347,9 @@ const InterviewPanel = () => {
       setOutputResult("Compiler not loaded yet. Please wait.");
       return;
     }
-    
+
     if (!currentCode.trim()) { setOutputResult("> Please write some code first."); return; }
-    
+
     setOutputResult('');
     setRunStatus('running');
     setMetaText('Running...');
@@ -312,7 +367,7 @@ const InterviewPanel = () => {
     });
 
     try {
-      await window.Sk.misceval.asyncToPromise(() => 
+      await window.Sk.misceval.asyncToPromise(() =>
         window.Sk.importMainWithBody('<stdin>', false, currentCode, true)
       );
       setRunStatus('success');
@@ -333,7 +388,7 @@ const InterviewPanel = () => {
       const newCode = currentCode.slice(0, start) + '    ' + currentCode.slice(end);
       setCodeData({ ...codeData, [currentQ]: newCode });
       setTimeout(() => {
-        if(editorRef.current) editorRef.current.selectionStart = editorRef.current.selectionEnd = start + 4;
+        if (editorRef.current) editorRef.current.selectionStart = editorRef.current.selectionEnd = start + 4;
       }, 0);
     }
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -349,7 +404,7 @@ const InterviewPanel = () => {
       setRunStatus("idle");
       setMetaText("");
       if (!codeData[currentQ + 1]) {
-        setCodeData(prev => ({...prev, [currentQ + 1]: "# Write and run Python here\n\n"}));
+        setCodeData(prev => ({ ...prev, [currentQ + 1]: "# Write and run Python here\n\n" }));
       }
     } else submitAssessment("Completed", "User Submitted");
   };
@@ -513,16 +568,24 @@ const InterviewPanel = () => {
     document.documentElement.requestFullscreen?.().catch(() => console.warn("Fullscreen API rejected."));
   };
 
+  if (loadingQuestions) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-white text-xl font-semibold">
+        Generating AI Interview Questions...
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen text-white font-sans selection:bg-indigo-500/30 overflow-hidden bg-[#050816]">
       <SoftBackdrop />
       <LenisScroll />
       <CustomModal {...modalConfig} onClose={closeModal} />
-      
-      <DeviceSetupModal 
-        isOpen={isSetupModalOpen} 
-        onClose={() => setIsSetupModalOpen(false)} 
-        onConfirm={startActualInterview} 
+
+      <DeviceSetupModal
+        isOpen={isSetupModalOpen}
+        onClose={() => setIsSetupModalOpen(false)}
+        onConfirm={startActualInterview}
         isModelsLoaded={isModelsLoaded}
       />
 
@@ -535,7 +598,7 @@ const InterviewPanel = () => {
             {liveTime.toLocaleTimeString("en-US", { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </p>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <div className="p-[2px] rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-indigo-900 shadow-[0_0_15px_rgba(139,92,246,0.4)]">
             <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full overflow-hidden bg-[#0f172a] flex items-center justify-center text-base font-bold text-white">
@@ -569,7 +632,7 @@ const InterviewPanel = () => {
           </div>
 
           <div className="flex-1 p-6 lg:p-8 flex flex-col min-h-0">
-            {status === "active" && drive?.driveType === "mcq" && (
+            {status === "active" && drive?.driveType?.toLowerCase() === "mcq" && (
               <div className="h-full flex flex-col justify-between max-w-4xl mx-auto w-full">
                 <div className="space-y-6">
                   <span className="text-indigo-400 font-mono text-sm">Question {currentQ + 1} of {questions.length}</span>
@@ -577,7 +640,7 @@ const InterviewPanel = () => {
                   <div className="space-y-3 mt-8">
                     {questions[currentQ]?.options.map((opt, idx) => (
                       <label key={idx} className={`flex items-center p-4 border rounded-xl cursor-pointer transition-all ${answers[currentQ] === idx ? 'bg-indigo-600/20 border-indigo-500' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
-                        <input type="radio" name="mcq" className="hidden" checked={answers[currentQ] === idx} onChange={() => setAnswers({...answers, [currentQ]: idx})} />
+                        <input type="radio" name="mcq" className="hidden" checked={answers[currentQ] === idx} onChange={() => setAnswers({ ...answers, [currentQ]: idx })} />
                         <span className="ml-2 text-gray-300">{opt}</span>
                       </label>
                     ))}
@@ -591,91 +654,90 @@ const InterviewPanel = () => {
               </div>
             )}
 
-            {status === "active" && drive?.driveType === "code base" && (
+            {status === "active" && drive?.driveType?.toLowerCase() === "code base" && (
               <div className="h-full flex flex-col gap-4 min-h-0">
-                 <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <span className="text-indigo-400 font-mono text-sm block mb-1">Question {currentQ + 1} of {questions.length}</span>
+                    <p className="text-sm text-gray-300">{questions[currentQ]?.question}</p>
+                  </div>
+                </div>
+
+                <div className="flex-1 flex flex-col bg-[#0b1220]/70 overflow-hidden rounded-xl border border-white/10 shadow-inner">
+                  <div className="h-14 shrink-0 border-b border-white/10 bg-[#050816]/70 backdrop-blur-xl px-4 flex items-center justify-between gap-4">
                     <div>
-                      <span className="text-indigo-400 font-mono text-sm block mb-1">Question {currentQ + 1} of {questions.length}</span>
-                      <p className="text-sm text-gray-300">{questions[currentQ]?.question}</p>
+                      <p className="text-[10px] uppercase tracking-[0.24em] text-[#A1A1AA] font-semibold">Editor: Python 3</p>
                     </div>
-                 </div>
-                 
-                 <div className="flex-1 flex flex-col bg-[#0b1220]/70 overflow-hidden rounded-xl border border-white/10 shadow-inner">
-                   <div className="h-14 shrink-0 border-b border-white/10 bg-[#050816]/70 backdrop-blur-xl px-4 flex items-center justify-between gap-4">
-                     <div>
-                       <p className="text-[10px] uppercase tracking-[0.24em] text-[#A1A1AA] font-semibold">Editor: Python 3</p>
-                     </div>
-                     <div className="flex items-center gap-2">
-                       <button 
-                         onClick={() => { setCodeData({...codeData, [currentQ]: ''}); setOutputResult(''); setMetaText(''); setRunStatus('idle'); }}
-                         className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-[#A1A1AA] hover:bg-white/10 hover:text-white transition-all"
-                       >
-                         Clear
-                       </button>
-                       <button 
-                         onClick={runPythonCode}
-                         disabled={runStatus === 'running'}
-                         className="rounded-lg bg-[#6C63FF] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#7b73ff] transition-all shadow-[0_0_0_1px_rgba(108,99,255,0.16),_0_10px_30px_rgba(0,0,0,0.28)] disabled:opacity-50"
-                       >
-                         Run Code
-                       </button>
-                     </div>
-                   </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => { setCodeData({ ...codeData, [currentQ]: '' }); setOutputResult(''); setMetaText(''); setRunStatus('idle'); }}
+                        className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-[#A1A1AA] hover:bg-white/10 hover:text-white transition-all"
+                      >
+                        Clear
+                      </button>
+                      <button
+                        onClick={runPythonCode}
+                        disabled={runStatus === 'running'}
+                        className="rounded-lg bg-[#6C63FF] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#7b73ff] transition-all shadow-[0_0_0_1px_rgba(108,99,255,0.16),_0_10px_30px_rgba(0,0,0,0.28)] disabled:opacity-50"
+                      >
+                        Run Code
+                      </button>
+                    </div>
+                  </div>
 
-                   <div className="grid grid-rows-[minmax(0,1fr)_180px] flex-1 min-h-0 overflow-hidden">
-                     <div className="min-h-0 grid grid-cols-[50px_minmax(0,1fr)] bg-[#07101d] overflow-hidden">
-                       <div 
-                         ref={lineNumbersRef}
-                         className="overflow-hidden border-r border-white/10 bg-black/40 py-4 text-right text-[13px] leading-7 font-mono text-gray-600 select-none scrollbar-thin"
-                       />
-                       <textarea
-                         ref={editorRef}
-                         value={currentCode}
-                         onChange={(e) => setCodeData({...codeData, [currentQ]: e.target.value})}
-                         onScroll={syncScroll}
-                         onKeyDown={handleKeyDownCode}
-                         spellCheck="false"
-                         className="min-h-0 h-full w-full resize-none overflow-auto scrollbar-thin bg-transparent p-4 font-mono text-[13px] leading-7 text-green-400 outline-none"
-                         placeholder="# Write Python code here"
-                       />
-                     </div>
+                  <div className="grid grid-rows-[minmax(0,1fr)_180px] flex-1 min-h-0 overflow-hidden">
+                    <div className="min-h-0 grid grid-cols-[50px_minmax(0,1fr)] bg-[#07101d] overflow-hidden">
+                      <div
+                        ref={lineNumbersRef}
+                        className="overflow-hidden border-r border-white/10 bg-black/40 py-4 text-right text-[13px] leading-7 font-mono text-gray-600 select-none scrollbar-thin"
+                      />
+                      <textarea
+                        ref={editorRef}
+                        value={currentCode}
+                        onChange={(e) => setCodeData({ ...codeData, [currentQ]: e.target.value })}
+                        onScroll={syncScroll}
+                        onKeyDown={handleKeyDownCode}
+                        spellCheck="false"
+                        className="min-h-0 h-full w-full resize-none overflow-auto scrollbar-thin bg-transparent p-4 font-mono text-[13px] leading-7 text-green-400 outline-none"
+                        placeholder="# Write Python code here"
+                      />
+                    </div>
 
-                     <div className="border-t border-white/10 bg-[#050816]/80 flex flex-col min-h-0 overflow-hidden">
-                       <div className="h-10 shrink-0 px-4 border-b border-white/10 flex items-center justify-between">
-                         <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-[#A1A1AA]">
-                           <span 
-                             className={`h-2.5 w-2.5 rounded-full transition-all ${
-                               runStatus === 'running' ? 'bg-yellow-400 animate-pulse' :
-                               runStatus === 'success' ? 'bg-[#22C55E]' :
-                               runStatus === 'error' ? 'bg-red-400' :
-                               'bg-white/30'
-                             }`}
-                           />
-                           Output
-                         </div>
-                         <div className="text-xs text-[#A1A1AA] font-mono">{metaText}</div>
-                       </div>
-                       <pre className="min-h-0 flex-1 overflow-auto scrollbar-thin p-4 font-mono text-[13px] leading-7 text-slate-200 whitespace-pre-wrap">
-                         {outputResult || "> Terminal Output..."}
-                       </pre>
-                     </div>
-                   </div>
-                 </div>
+                    <div className="border-t border-white/10 bg-[#050816]/80 flex flex-col min-h-0 overflow-hidden">
+                      <div className="h-10 shrink-0 px-4 border-b border-white/10 flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-[#A1A1AA]">
+                          <span
+                            className={`h-2.5 w-2.5 rounded-full transition-all ${runStatus === 'running' ? 'bg-yellow-400 animate-pulse' :
+                                runStatus === 'success' ? 'bg-[#22C55E]' :
+                                  runStatus === 'error' ? 'bg-red-400' :
+                                    'bg-white/30'
+                              }`}
+                          />
+                          Output
+                        </div>
+                        <div className="text-xs text-[#A1A1AA] font-mono">{metaText}</div>
+                      </div>
+                      <pre className="min-h-0 flex-1 overflow-auto scrollbar-thin p-4 font-mono text-[13px] leading-7 text-slate-200 whitespace-pre-wrap">
+                        {outputResult || "> Terminal Output..."}
+                      </pre>
+                    </div>
+                  </div>
+                </div>
 
-                 <div className="flex justify-center mt-4 shrink-0">
+                <div className="flex justify-center mt-4 shrink-0">
                   <button onClick={handleNext} className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-2.5 rounded-xl text-sm font-bold uppercase tracking-widest active:scale-95 transition-all">
                     {currentQ === questions.length - 1 ? "Submit Assessment" : "Save & Next"}
                   </button>
-                 </div>
+                </div>
               </div>
             )}
 
             {status === "idle" && (
-                <div className="h-full flex flex-col justify-center items-center text-center">
-                    <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-6"></div>
-                    <h1 className="text-2xl font-bold text-white">Preparing Secure Environment</h1>
-                    <p className="text-gray-400 text-sm mt-3">Please complete the device setup to reveal your assessment questions.</p>
-                </div>
+              <div className="h-full flex flex-col justify-center items-center text-center">
+                <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-6"></div>
+                <h1 className="text-2xl font-bold text-white">Preparing Secure Environment</h1>
+                <p className="text-gray-400 text-sm mt-3">Please complete the device setup to reveal your assessment questions.</p>
+              </div>
             )}
           </div>
         </motion.section>
@@ -700,28 +762,28 @@ const InterviewPanel = () => {
 
           <div className="flex-1 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 flex flex-col shadow-2xl">
             <h3 className="text-[10px] font-black text-indigo-400 mb-6 uppercase tracking-[0.3em] flex items-center gap-2"><span className={`h-1.5 w-1.5 rounded-full ${status === "active" ? "bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]" : "bg-gray-600"}`} /> AI Interviewer</h3>
-            
+
             <div className="flex-1 overflow-y-auto mb-8">
-              {status === "active" && drive?.driveType === "code base" ? (
-                 <div className="p-5 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl text-sm text-indigo-50 leading-relaxed shadow-inner">
-                   <span className="font-bold text-indigo-300 block mb-2">Live Execution Active:</span>
-                   Code execution is isolated within your browser. All inputs and outputs are monitored for academic integrity.
-                 </div>
+              {status === "active" && drive?.driveType?.toLowerCase() === "code base" ? (
+                <div className="p-5 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl text-sm text-indigo-50 leading-relaxed shadow-inner">
+                  <span className="font-bold text-indigo-300 block mb-2">Live Execution Active:</span>
+                  Code execution is isolated within your browser. All inputs and outputs are monitored for academic integrity.
+                </div>
               ) : (
                 <div className="p-5 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl text-sm text-indigo-50 leading-relaxed shadow-inner">
-                  {status === "active" 
-                    ? "System active. AI proctoring is continuously monitoring face visibility, attention, and environment integrity." 
-                    : isModelsLoaded 
-                      ? "Authentication pending. Please complete the device setup to authorize access." 
+                  {status === "active"
+                    ? "System active. AI proctoring is continuously monitoring face visibility, attention, and environment integrity."
+                    : isModelsLoaded
+                      ? "Authentication pending. Please complete the device setup to authorize access."
                       : "Initializing AI Proctoring Subsystems. Please wait..."}
                 </div>
               )}
             </div>
 
             <div className="flex justify-center">
-              <button 
-                onClick={toggleInterview} 
-                disabled={status === "idle"} 
+              <button
+                onClick={toggleInterview}
+                disabled={status === "idle"}
                 className={`w-full max-w-[300px] flex items-center justify-center gap-3 py-4 rounded-2xl border transition-all active:scale-95 text-[10px] font-black uppercase tracking-[0.2em] ${status === "idle" ? "bg-gray-800/50 border-gray-700 text-gray-500 cursor-not-allowed" : "bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500 hover:text-white"}`}
               >
                 {status === "idle" ? "Awaiting Setup" : "Submit & End"}
