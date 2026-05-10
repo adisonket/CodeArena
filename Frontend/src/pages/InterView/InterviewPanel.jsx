@@ -5,6 +5,7 @@ import * as faceapi from "face-api.js";
 import SoftBackdrop from "../../components/SoftBackdrop";
 import LenisScroll from "../../components/lenis";
 import { useAuth } from "../../context/AuthContext";
+import CodeEditor from "../../components/CodeEditor";
 
 const CustomModal = ({ isOpen, title, message, type, onClose, onConfirm }) => {
   return (
@@ -123,8 +124,6 @@ const DeviceSetupModal = ({ isOpen, onClose, onConfirm, isModelsLoaded }) => {
   );
 };
 
-
-
 const formatTime = (seconds) => {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
@@ -143,14 +142,6 @@ const InterviewPanel = () => {
   const [loadingQuestions, setLoadingQuestions] = useState(true);
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState({});
-  const [codeData, setCodeData] = useState({});
-
-  const [outputResult, setOutputResult] = useState("");
-  const [runStatus, setRunStatus] = useState("idle");
-  const [metaText, setMetaText] = useState("");
-  const editorRef = useRef(null);
-  const lineNumbersRef = useRef(null);
-  const skulptLoaded = useRef(false);
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -173,15 +164,16 @@ const InterviewPanel = () => {
   const closeModal = () => setModalConfig((prev) => ({ ...prev, isOpen: false }));
   const triggerAlert = (title, message, type = "info", onConfirm = null) => { setModalConfig({ isOpen: true, title, message, type, onConfirm }); };
 
+  const isMCQ = drive?.driveType?.toLowerCase() === "mcq";
+  const isCoding = !isMCQ;
+
   useEffect(() => {
     const timer = setInterval(() => setLiveTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
-
     const fetchAIQuestions = async () => {
-
       if (!drive) {
         navigate("/");
         return;
@@ -189,7 +181,6 @@ const InterviewPanel = () => {
 
       setLoadingQuestions(true);
       try {
-
         const response = await fetch(
           `${import.meta.env.VITE_API_URL}/api/ai/generate`,
           {
@@ -200,10 +191,7 @@ const InterviewPanel = () => {
             body: JSON.stringify({
               domain: drive.hiringPositionName,
               difficulty: "Intermediate",
-              type:
-                drive.driveType.toLowerCase() === "mcq"
-                  ? "MCQ"
-                  : "CODING",
+              type: isMCQ ? "MCQ" : "CODING",
               count: drive.numberOfQuestions,
             }),
           }
@@ -212,63 +200,28 @@ const InterviewPanel = () => {
         const data = await response.json();
 
         if (data.success) {
-
           if (Array.isArray(data.questions) && data.questions.length > 0) {
-
             setQuestions(
               data.questions.map((q, index) => ({
                 id: index + 1,
                 ...q,
               }))
             );
-
           } else {
-
             console.error("No questions returned from AI");
-
           }
-
         } else {
-
           console.error("Failed to generate AI questions");
-
         }
-
-        if (drive.driveType.toLowerCase() === "code base") {
-          setCodeData({
-            0: "# Write and run Python here\n\n",
-          });
-        }
-
       } catch (error) {
-
         console.error("AI Question Fetch Error:", error);
-
       } finally {
-
         setLoadingQuestions(false);
-
       }
     };
 
     fetchAIQuestions();
-
-  }, [drive, navigate]);
-
-  useEffect(() => {
-    const loadSkulpt = async () => {
-      if (!skulptLoaded.current && drive?.driveType?.toLowerCase() === "code base") {
-        const [skulpt, stdlib] = await Promise.all([
-          import('https://cdn.skypack.dev/skulpt'),
-          import('https://cdn.skypack.dev/skulpt-stdlib')
-        ]);
-        window.Sk = skulpt.Sk;
-        window.Sk.builtinFiles = stdlib.builtinFiles;
-        skulptLoaded.current = true;
-      }
-    };
-    loadSkulpt();
-  }, [drive]);
+  }, [drive, navigate, isMCQ]);
 
   useEffect(() => {
     let timer;
@@ -321,92 +274,12 @@ const InterviewPanel = () => {
     submitAssessment("Terminated", reason);
   };
 
-  const currentCode = codeData[currentQ] || "";
-
-  const renderLineNumbers = useCallback(() => {
-    if (!editorRef.current || !lineNumbersRef.current) return;
-    const count = Math.max(1, currentCode.split('\n').length);
-    lineNumbersRef.current.innerHTML = Array.from(
-      { length: count },
-      (_, i) => `<div class="pr-4">${i + 1}</div>`
-    ).join('');
-  }, [currentCode]);
-
-  useEffect(() => {
-    renderLineNumbers();
-  }, [currentCode, renderLineNumbers]);
-
-  const syncScroll = useCallback(() => {
-    if (lineNumbersRef.current && editorRef.current) {
-      lineNumbersRef.current.scrollTop = editorRef.current.scrollTop;
-    }
-  }, []);
-
-  const runPythonCode = useCallback(async () => {
-    if (!window.Sk) {
-      setOutputResult("Compiler not loaded yet. Please wait.");
-      return;
-    }
-
-    if (!currentCode.trim()) { setOutputResult("> Please write some code first."); return; }
-
-    setOutputResult('');
-    setRunStatus('running');
-    setMetaText('Running...');
-    const start = performance.now();
-
-    window.Sk.configure({
-      output: (text) => setOutputResult((prev) => prev + text),
-      read: (file) => {
-        if (window.Sk.builtinFiles?.files[file] === undefined) {
-          throw `File not found: '${file}'`;
-        }
-        return window.Sk.builtinFiles.files[file];
-      },
-      __future__: window.Sk.python3
-    });
-
-    try {
-      await window.Sk.misceval.asyncToPromise(() =>
-        window.Sk.importMainWithBody('<stdin>', false, currentCode, true)
-      );
-      setRunStatus('success');
-      setMetaText(((performance.now() - start) / 1000).toFixed(3) + 's');
-      setOutputResult((prev) => prev.trim() ? prev : 'Code executed successfully with no output.');
-    } catch (err) {
-      setRunStatus('error');
-      setMetaText(((performance.now() - start) / 1000).toFixed(3) + 's');
-      setOutputResult(err.toString());
-    }
-  }, [currentCode]);
-
-  const handleKeyDownCode = useCallback((e) => {
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const start = editorRef.current.selectionStart;
-      const end = editorRef.current.selectionEnd;
-      const newCode = currentCode.slice(0, start) + '    ' + currentCode.slice(end);
-      setCodeData({ ...codeData, [currentQ]: newCode });
-      setTimeout(() => {
-        if (editorRef.current) editorRef.current.selectionStart = editorRef.current.selectionEnd = start + 4;
-      }, 0);
-    }
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-      e.preventDefault();
-      runPythonCode();
-    }
-  }, [currentCode, codeData, currentQ, runPythonCode]);
-
   const handleNext = () => {
     if (currentQ < questions.length - 1) {
       setCurrentQ(currentQ + 1);
-      setOutputResult("");
-      setRunStatus("idle");
-      setMetaText("");
-      if (!codeData[currentQ + 1]) {
-        setCodeData(prev => ({ ...prev, [currentQ + 1]: "# Write and run Python here\n\n" }));
-      }
-    } else submitAssessment("Completed", "User Submitted");
+    } else {
+      submitAssessment("Completed", "User Submitted");
+    }
   };
 
   useEffect(() => {
@@ -460,9 +333,13 @@ const InterviewPanel = () => {
     const performAnalysis = async () => {
       if (!isRunning || isAnalyzing.current || modalConfig.isOpen) return;
       isAnalyzing.current = true;
+      
       try {
         const video = videoRef.current;
-        if (!video || video.readyState < 2 || video.paused || video.ended) { isAnalyzing.current = false; return; }
+        if (!video || video.readyState < 2 || video.paused || video.ended) { 
+          isAnalyzing.current = false; 
+          return; 
+        }
 
         const now = Date.now();
         const isCooldown = now - lastViolationTime.current < 4000;
@@ -470,7 +347,9 @@ const InterviewPanel = () => {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
         let totalBrightness = 0;
-        for (let i = 0; i < frame.data.length; i += 16) totalBrightness += (frame.data[i] + frame.data[i + 1] + frame.data[i + 2]) / 3;
+        for (let i = 0; i < frame.data.length; i += 16) {
+          totalBrightness += (frame.data[i] + frame.data[i + 1] + frame.data[i + 2]) / 3;
+        }
         const avgBrightness = totalBrightness / (frame.data.length / 16);
 
         if (avgBrightness < 30) {
@@ -478,27 +357,56 @@ const InterviewPanel = () => {
             violations.current.brightness += 1;
             lastViolationTime.current = Date.now();
             if (violations.current.brightness >= 4) terminateSession("Environment too dark.");
-            else triggerAlert("Hardware Warning", `Warning ${violations.current.brightness}/3: Lighting is too dark.`, "danger");
+            else triggerAlert("Lighting Warning", `Warning ${violations.current.brightness}/3: Lighting is too dark. Please turn on a light.`, "danger");
           }
-          isAnalyzing.current = false; return;
+          isAnalyzing.current = false; 
+          return;
         }
 
-        const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.35 })).withFaceLandmarks();
+        const detections = await faceapi.detectAllFaces(
+          video, 
+          new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.2 })
+        ).withFaceLandmarks();
+
         if (detections.length === 0) {
           missingFaceFrames.current += 1;
-          if (missingFaceFrames.current >= 5) {
+          
+          const allowedMissingFrames = isCoding ? 7 : 2;
+
+          if (missingFaceFrames.current >= allowedMissingFrames) { 
             if (!isCooldown) {
               violations.current.noFace += 1;
               lastViolationTime.current = Date.now();
               missingFaceFrames.current = 0;
-              if (violations.current.noFace >= 4) terminateSession("Face obscured or not visible.");
-              else triggerAlert("Visibility Warning", `Warning ${violations.current.noFace}/3: Face not detected.`, "danger");
+              if (violations.current.noFace >= 4) {
+                terminateSession("Face obscured or not visible.");
+              } else {
+                triggerAlert("Visibility Violation", `Warning ${violations.current.noFace}/3: Face not detected! Please look directly at the screen.`, "danger");
+              }
             }
-            isAnalyzing.current = false; return;
           }
-        } else missingFaceFrames.current = 0;
+        } 
+        else if (detections.length > 1) {
+          missingFaceFrames.current = 0;
+          if (!isCooldown) {
+            violations.current.multiPerson += 1;
+            lastViolationTime.current = Date.now();
+            if (violations.current.multiPerson >= 3) {
+              terminateSession("Multiple people detected in the environment.");
+            } else {
+              triggerAlert("Security Violation", `Warning ${violations.current.multiPerson}/2: Multiple faces detected! You must take this assessment alone.`, "danger");
+            }
+          }
+        } 
+        else {
+          missingFaceFrames.current = 0; 
+        }
 
-      } catch (err) { console.error(err); } finally { isAnalyzing.current = false; }
+      } catch (err) { 
+        console.error("Analysis Error:", err); 
+      } finally { 
+        isAnalyzing.current = false; 
+      }
     };
 
     const loop = async () => {
@@ -506,9 +414,14 @@ const InterviewPanel = () => {
       await performAnalysis();
       analysisTimeoutRef.current = setTimeout(loop, 1500);
     };
+    
     loop();
-    return () => { isRunning = false; if (analysisTimeoutRef.current) clearTimeout(analysisTimeoutRef.current); };
-  }, [status, isModelsLoaded, modalConfig.isOpen]);
+    
+    return () => { 
+      isRunning = false; 
+      if (analysisTimeoutRef.current) clearTimeout(analysisTimeoutRef.current); 
+    };
+  }, [status, isModelsLoaded, modalConfig.isOpen, isCoding]);
 
   useEffect(() => {
     if (status !== "active") return;
@@ -570,15 +483,15 @@ const InterviewPanel = () => {
 
   if (loadingQuestions) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-white text-xl font-semibold">
+      <div className="h-screen w-screen flex items-center justify-center bg-[#050816] text-white text-xl font-semibold overflow-hidden">
         Generating AI Interview Questions...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen text-white font-sans selection:bg-indigo-500/30 overflow-hidden relative bg-[#050816]">
-      <div className="absolute inset-0 z-0 opacity-70">
+    <div className="h-screen w-screen text-white font-sans selection:bg-indigo-500/30 overflow-hidden relative bg-[#050816]">
+      <div className="absolute inset-0 z-0 opacity-70 pointer-events-none">
         <SoftBackdrop />
       </div>
       <LenisScroll />
@@ -591,7 +504,7 @@ const InterviewPanel = () => {
         isModelsLoaded={isModelsLoaded}
       />
 
-      <div className="w-full max-w-[1600px] mx-auto px-4 lg:px-6 pt-4 flex justify-between items-center z-10 relative">
+      <div className="h-[80px] w-full max-w-[1600px] mx-auto px-4 lg:px-6 flex justify-between items-center z-10 relative shrink-0">
         <div>
           <h2 className="text-xl sm:text-2xl font-extrabold text-indigo-400">
             {liveTime.toLocaleDateString("en-US", { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
@@ -617,9 +530,9 @@ const InterviewPanel = () => {
         </div>
       </div>
 
-      <main className="relative z-10 p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-170px)] max-w-[1600px] mx-auto">
-        <motion.section initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-8 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden flex flex-col shadow-2xl">
-          <div className="p-4 border-b border-white/10 bg-white/5 flex justify-between items-center">
+      <main className="relative z-10 px-4 pb-4 lg:px-6 lg:pb-6 grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-80px)] max-w-[1600px] mx-auto">
+        <motion.section initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-8 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden flex flex-col shadow-2xl min-h-0">
+          <div className="p-4 border-b border-white/10 bg-white/5 flex justify-between items-center shrink-0">
             <div className="flex items-center gap-3">
               <div className="flex gap-1.5">
                 <div className="h-3 w-3 rounded-full bg-red-500/40"></div><div className="h-3 w-3 rounded-full bg-yellow-500/40"></div><div className="h-3 w-3 rounded-full bg-green-500/40"></div>
@@ -633,8 +546,16 @@ const InterviewPanel = () => {
             )}
           </div>
 
-          <div className="flex-1 p-6 lg:p-8 flex flex-col min-h-0">
-            {status === "active" && drive?.driveType?.toLowerCase() === "mcq" && (
+          <div className="flex-1 p-6 flex flex-col min-h-0">
+            
+            {status === "active" && questions.length === 0 && (
+              <div className="h-full flex flex-col justify-center items-center text-center">
+                <h2 className="text-xl font-bold text-red-400">Failed to load questions</h2>
+                <p className="text-sm text-gray-400 mt-2">The API returned an empty list. Please contact support or restart the drive.</p>
+              </div>
+            )}
+
+            {status === "active" && isMCQ && questions.length > 0 && (
               <div className="h-full flex flex-col justify-between max-w-4xl mx-auto w-full">
                 <div className="space-y-6">
                   <span className="text-indigo-400 font-mono text-sm">Question {currentQ + 1} of {questions.length}</span>
@@ -656,78 +577,17 @@ const InterviewPanel = () => {
               </div>
             )}
 
-            {status === "active" && drive?.driveType?.toLowerCase() === "code base" && (
+            {status === "active" && isCoding && questions.length > 0 && (
               <div className="h-full flex flex-col gap-4 min-h-0">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <span className="text-indigo-400 font-mono text-sm block mb-1">Question {currentQ + 1} of {questions.length}</span>
-                    <p className="text-sm text-gray-300">{questions[currentQ]?.question}</p>
-                  </div>
+                <div className="flex-1 min-h-0 flex flex-col rounded-xl overflow-hidden border border-white/10 shadow-inner">
+                  <CodeEditor currentQuestion={questions[currentQ]} />
                 </div>
 
-                <div className="flex-1 flex flex-col bg-[#0b1220]/70 overflow-hidden rounded-xl border border-white/10 shadow-inner">
-                  <div className="h-14 shrink-0 border-b border-white/10 bg-[#050816]/70 backdrop-blur-xl px-4 flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-[10px] uppercase tracking-[0.24em] text-[#A1A1AA] font-semibold">Editor: Python 3</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => { setCodeData({ ...codeData, [currentQ]: '' }); setOutputResult(''); setMetaText(''); setRunStatus('idle'); }}
-                        className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-[#A1A1AA] hover:bg-white/10 hover:text-white transition-all"
-                      >
-                        Clear
-                      </button>
-                      <button
-                        onClick={runPythonCode}
-                        disabled={runStatus === 'running'}
-                        className="rounded-lg bg-[#6C63FF] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#7b73ff] transition-all shadow-[0_0_0_1px_rgba(108,99,255,0.16),_0_10px_30px_rgba(0,0,0,0.28)] disabled:opacity-50"
-                      >
-                        Run Code
-                      </button>
-                    </div>
+                <div className="flex justify-between items-center shrink-0 pt-2 pb-1">
+                  <div className="text-sm text-gray-400 font-mono px-2">
+                    Question {currentQ + 1} of {questions.length}
                   </div>
-
-                  <div className="grid grid-rows-[minmax(0,1fr)_180px] flex-1 min-h-0 overflow-hidden">
-                    <div className="min-h-0 grid grid-cols-[50px_minmax(0,1fr)] bg-[#07101d] overflow-hidden">
-                      <div
-                        ref={lineNumbersRef}
-                        className="overflow-hidden border-r border-white/10 bg-black/40 py-4 text-right text-[13px] leading-7 font-mono text-gray-600 select-none scrollbar-thin"
-                      />
-                      <textarea
-                        ref={editorRef}
-                        value={currentCode}
-                        onChange={(e) => setCodeData({ ...codeData, [currentQ]: e.target.value })}
-                        onScroll={syncScroll}
-                        onKeyDown={handleKeyDownCode}
-                        spellCheck="false"
-                        className="min-h-0 h-full w-full resize-none overflow-auto scrollbar-thin bg-transparent p-4 font-mono text-[13px] leading-7 text-green-400 outline-none"
-                        placeholder="# Write Python code here"
-                      />
-                    </div>
-
-                    <div className="border-t border-white/10 bg-[#050816]/80 flex flex-col min-h-0 overflow-hidden">
-                      <div className="h-10 shrink-0 px-4 border-b border-white/10 flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-[#A1A1AA]">
-                          <span
-                            className={`h-2.5 w-2.5 rounded-full transition-all ${runStatus === 'running' ? 'bg-yellow-400 animate-pulse' :
-                                runStatus === 'success' ? 'bg-[#22C55E]' :
-                                  runStatus === 'error' ? 'bg-red-400' :
-                                    'bg-white/30'
-                              }`}
-                          />
-                          Output
-                        </div>
-                        <div className="text-xs text-[#A1A1AA] font-mono">{metaText}</div>
-                      </div>
-                      <pre className="min-h-0 flex-1 overflow-auto scrollbar-thin p-4 font-mono text-[13px] leading-7 text-slate-200 whitespace-pre-wrap">
-                        {outputResult || "> Terminal Output..."}
-                      </pre>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex justify-center mt-4 shrink-0">
-                  <button onClick={handleNext} className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-2.5 rounded-xl text-sm font-bold uppercase tracking-widest active:scale-95 transition-all">
+                  <button onClick={handleNext} className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-xl text-sm font-bold uppercase tracking-widest active:scale-95 transition-all shadow-lg">
                     {currentQ === questions.length - 1 ? "Submit Assessment" : "Save & Next"}
                   </button>
                 </div>
@@ -744,8 +604,8 @@ const InterviewPanel = () => {
           </div>
         </motion.section>
 
-        <motion.section initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-4 flex flex-col gap-6">
-          <div className="aspect-video bg-black/60 border border-indigo-500/30 rounded-3xl relative overflow-hidden ring-1 ring-indigo-500/20 shadow-xl group">
+        <motion.section initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-4 flex flex-col gap-6 min-h-0">
+          <div className="aspect-video shrink-0 bg-black/60 border border-indigo-500/30 rounded-3xl relative overflow-hidden ring-1 ring-indigo-500/20 shadow-xl group">
             {status === "idle" ? (
               <div className="h-full w-full flex flex-col items-center justify-center text-gray-500 gap-3">
                 <div className="p-4 rounded-full bg-white/5 border border-white/10">
@@ -762,14 +622,22 @@ const InterviewPanel = () => {
             )}
           </div>
 
-          <div className="flex-1 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 flex flex-col shadow-2xl">
-            <h3 className="text-[10px] font-black text-indigo-400 mb-6 uppercase tracking-[0.3em] flex items-center gap-2"><span className={`h-1.5 w-1.5 rounded-full ${status === "active" ? "bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]" : "bg-gray-600"}`} /> AI Interviewer</h3>
+          <div className="flex-1 min-h-0 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 lg:p-8 flex flex-col shadow-2xl">
+            <h3 className="text-[10px] font-black text-indigo-400 mb-4 lg:mb-6 uppercase tracking-[0.3em] flex items-center gap-2 shrink-0"><span className={`h-1.5 w-1.5 rounded-full ${status === "active" ? "bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]" : "bg-gray-600"}`} /> AI Interviewer</h3>
 
-            <div className="flex-1 overflow-y-auto mb-8">
-              {status === "active" && drive?.driveType?.toLowerCase() === "code base" ? (
-                <div className="p-5 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl text-sm text-indigo-50 leading-relaxed shadow-inner">
-                  <span className="font-bold text-indigo-300 block mb-2">Live Execution Active:</span>
-                  Code execution is isolated within your browser. All inputs and outputs are monitored for academic integrity.
+            <div className="flex-1 overflow-y-auto mb-4 lg:mb-6 pr-2 scrollbar-thin">
+              {status === "active" && isCoding ? (
+                <div className="space-y-4">
+                  <div className="p-5 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl shadow-inner">
+                    <span className="text-xs font-black text-indigo-400 uppercase tracking-wider mb-3 block">Current Task (Q{currentQ + 1})</span>
+                    <p className="text-sm text-indigo-50 leading-relaxed font-medium whitespace-pre-wrap">
+                      {questions[currentQ]?.question || "Loading question..."}
+                    </p>
+                  </div>
+                  <div className="px-4 py-3 bg-black/20 rounded-xl text-xs text-gray-400 border border-white/5">
+                    <span className="font-bold text-gray-300 block mb-1">Live Execution Active:</span>
+                    Code execution is isolated within your browser. All inputs and outputs are monitored for academic integrity.
+                  </div>
                 </div>
               ) : (
                 <div className="p-5 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl text-sm text-indigo-50 leading-relaxed shadow-inner">
@@ -782,7 +650,7 @@ const InterviewPanel = () => {
               )}
             </div>
 
-            <div className="flex justify-center">
+            <div className="flex justify-center shrink-0">
               <button
                 onClick={toggleInterview}
                 disabled={status === "idle"}
