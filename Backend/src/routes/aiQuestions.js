@@ -1,8 +1,14 @@
 import express from "express";
-import { generateQuestions } from "../controllers/questionGenerator.js";
+
+import {
+  generateQuestionsController,
+} from "../controllers/questionGenerator.js";
 
 const router = express.Router();
 
-router.post("/generate", generateQuestions);
+router.post(
+  "/generate",
+  generateQuestionsController
+);
 
 export default router;
