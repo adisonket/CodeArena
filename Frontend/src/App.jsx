@@ -21,6 +21,8 @@ import VerifyEmail from "./pages/VerifyEmail.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import AdminDashboard from "./pages/Admin/AdminDashboard.jsx";
 import Interview from "./pages/InterView/Interview.jsx";
+import AdminDashboard2 from "./pages/Admin/AdminDashboard2.jsx";
+import CandidatesPage from "./components/admin/sidebar/Candidatespage.jsx";
 
 function App() {
   const { isLoggedIn, loading } = useAuth();
@@ -49,6 +51,9 @@ function App() {
       <Route path="/forgot" element={<ForgotPassword />} />
 
       <Route path="/admin" element={<AdminDashboard />} />
+
+      <Route path="/admindash" element={<AdminDashboard2 />} />
+      <Route path="/candidate" element={<CandidatesPage />} />
 
       <Route path="/interview" element={<Interview/>} />
 
