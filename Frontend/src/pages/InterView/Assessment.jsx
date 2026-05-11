@@ -113,7 +113,7 @@ const DeviceSetupModal = ({ isOpen, onClose, onConfirm, isModelsLoaded }) => {
                 disabled={!!error || !isModelsLoaded}
                 className="flex-1 py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-[10px] font-black uppercase tracking-widest transition-all active:scale-95"
               >
-                {!isModelsLoaded ? "Loading AI..." : "Start Interview"}
+                {!isModelsLoaded ? "Loading AI..." : "Start Assessment"}
               </button>
               <button onClick={onClose} className="px-6 py-3.5 rounded-2xl bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 text-[10px] font-black uppercase tracking-widest transition-all active:scale-95">Cancel</button>
             </div>
@@ -164,8 +164,10 @@ const Assessment = () => {
   const closeModal = () => setModalConfig((prev) => ({ ...prev, isOpen: false }));
   const triggerAlert = (title, message, type = "info", onConfirm = null) => { setModalConfig({ isOpen: true, title, message, type, onConfirm }); };
 
-  const isMCQ = drive?.driveType?.toLowerCase() === "mcq";
-  const isCoding = !isMCQ;
+  // Current question type detection
+  const currentQuestionType = questions[currentQ]?.type || "MCQ";
+  const isCurrentMCQ = currentQuestionType === "MCQ";
+  const isCurrentCoding = currentQuestionType === "CODING";
 
   useEffect(() => {
     const timer = setInterval(() => setLiveTime(new Date()), 1000);
@@ -181,37 +183,48 @@ const Assessment = () => {
 
       setLoadingQuestions(true);
       try {
-        const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/ai/generate`,
-          {
+        let allQuestions = [];
+
+        // Fetch MCQs
+        if (drive.mcqCount && drive.mcqCount > 0) {
+          const res = await fetch(`${import.meta.env.VITE_API_URL}/api/ai/generate`, {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               domain: drive.hiringPositionName,
               difficulty: "Intermediate",
-              type: isMCQ ? "MCQ" : "CODING",
-              count: drive.numberOfQuestions,
-            }),
+              type: "MCQ",
+              count: drive.mcqCount,
+            })
+          });
+          const data = await res.json();
+          if (data.success && data.questions) {
+            allQuestions = [...allQuestions, ...data.questions.map(q => ({ ...q, type: 'MCQ' }))];
           }
-        );
+        }
 
-        const data = await response.json();
-
-        if (data.success) {
-          if (Array.isArray(data.questions) && data.questions.length > 0) {
-            setQuestions(
-              data.questions.map((q, index) => ({
-                id: index + 1,
-                ...q,
-              }))
-            );
-          } else {
-            console.error("No questions returned from AI");
+        // Fetch Coding Questions
+        if (drive.codeCount && drive.codeCount > 0) {
+          const res = await fetch(`${import.meta.env.VITE_API_URL}/api/ai/generate`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              domain: drive.hiringPositionName,
+              difficulty: "Intermediate",
+              type: "CODING",
+              count: drive.codeCount,
+            })
+          });
+          const data = await res.json();
+          if (data.success && data.questions) {
+            allQuestions = [...allQuestions, ...data.questions.map(q => ({ ...q, type: 'CODING' }))];
           }
+        }
+
+        if (allQuestions.length > 0) {
+          setQuestions(allQuestions.map((q, index) => ({ id: index + 1, ...q })));
         } else {
-          console.error("Failed to generate AI questions");
+          console.error("No questions returned from AI for the requested settings.");
         }
       } catch (error) {
         console.error("AI Question Fetch Error:", error);
@@ -221,7 +234,7 @@ const Assessment = () => {
     };
 
     fetchAIQuestions();
-  }, [drive, navigate, isMCQ]);
+  }, [drive, navigate]);
 
   useEffect(() => {
     let timer;
@@ -371,7 +384,7 @@ const Assessment = () => {
         if (detections.length === 0) {
           missingFaceFrames.current += 1;
 
-          const allowedMissingFrames = isCoding ? 7 : 2;
+          const allowedMissingFrames = isCurrentCoding ? 7 : 2;
 
           if (missingFaceFrames.current >= allowedMissingFrames) {
             if (!isCooldown) {
@@ -421,7 +434,7 @@ const Assessment = () => {
       isRunning = false;
       if (analysisTimeoutRef.current) clearTimeout(analysisTimeoutRef.current);
     };
-  }, [status, isModelsLoaded, modalConfig.isOpen, isCoding]);
+  }, [status, isModelsLoaded, modalConfig.isOpen, isCurrentCoding]);
 
   useEffect(() => {
     if (status !== "active") return;
@@ -484,7 +497,7 @@ const Assessment = () => {
   if (loadingQuestions) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-[#050816] text-white text-xl font-semibold overflow-hidden">
-        Generating AI Interview Questions...
+        Generating AI Assessment Questions...
       </div>
     );
   }
@@ -555,10 +568,10 @@ const Assessment = () => {
               </div>
             )}
 
-            {status === "active" && isMCQ && questions.length > 0 && (
+            {status === "active" && isCurrentMCQ && questions.length > 0 && (
               <div className="h-full flex flex-col justify-between max-w-4xl mx-auto w-full">
                 <div className="space-y-6">
-                  <span className="text-indigo-400 font-mono text-sm">Question {currentQ + 1} of {questions.length}</span>
+                  <span className="text-indigo-400 font-mono text-sm">Question {currentQ + 1} of {questions.length} (MCQ)</span>
                   <h2 className="text-2xl font-semibold leading-relaxed">{questions[currentQ]?.question}</h2>
                   <div className="space-y-3 mt-8">
                     {questions[currentQ]?.options.map((opt, idx) => (
@@ -577,7 +590,7 @@ const Assessment = () => {
               </div>
             )}
 
-            {status === "active" && isCoding && questions.length > 0 && (
+            {status === "active" && isCurrentCoding && questions.length > 0 && (
               <div className="h-full flex flex-col gap-4 min-h-0">
                 <div className="flex-1 min-h-0 flex flex-col rounded-xl overflow-hidden border border-white/10 shadow-inner">
                   <CodeEditor
@@ -588,7 +601,7 @@ const Assessment = () => {
 
                 <div className="flex justify-between items-center shrink-0 pt-2 pb-1">
                   <div className="text-sm text-gray-400 font-mono px-2">
-                    Question {currentQ + 1} of {questions.length}
+                    Question {currentQ + 1} of {questions.length} (CODING)
                   </div>
                   <button onClick={handleNext} className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-3 rounded-xl text-sm font-bold uppercase tracking-widest active:scale-95 transition-all shadow-lg">
                     {currentQ === questions.length - 1 ? "Submit Assessment" : "Save & Next"}
@@ -630,19 +643,19 @@ const Assessment = () => {
             {/* Question Number Navigation */}
             {status === "active" && (
               <div className="flex gap-2 flex-wrap mb-6 shrink-0">
-                {questions.map((_, idx) => (
+                {questions.map((q, idx) => (
                   <button
                     key={idx}
                     onClick={() => setCurrentQ(idx)}
                     className={`w-9 h-9 rounded-xl text-xs font-black transition-all
             ${idx === currentQ
                         ? "bg-[#6C63FF] text-white shadow-[0_0_12px_rgba(108,99,255,0.45)] scale-105"
-                        : questions[idx]?.submitted
+                        : q.submitted
                           ? "bg-green-500/20 text-green-400 border border-green-500/30"
                           : "bg-white/5 text-[#A1A1AA] border border-white/10 hover:bg-white/10"
                       }`}
                   >
-                    {questions[idx]?.submitted ? "✓" : idx + 1}
+                    {q.submitted ? "✓" : idx + 1}
                   </button>
                 ))}
               </div>
@@ -651,7 +664,7 @@ const Assessment = () => {
             {/* Main Content */}
             <div className="flex-1 overflow-y-auto mb-4 lg:mb-6 pr-2 scrollbar-thin">
 
-              {status === "active" && isCoding ? (
+              {status === "active" && isCurrentCoding ? (
 
                 <div className="space-y-4">
 

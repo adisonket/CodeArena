@@ -201,6 +201,7 @@ const DrivesTable = ({ drives, onDelete }) => (
         <th className="px-6 py-4">Date</th>
         <th className="px-6 py-4">Type</th>
         <th className="px-6 py-4 text-center">Duration</th>
+        <th className="px-6 py-4 text-center">Questions</th>
         <th className="px-6 py-4 text-center">Total Marks</th>
         <th className="px-6 py-4 text-right">Actions</th>
       </tr>
@@ -213,7 +214,8 @@ const DrivesTable = ({ drives, onDelete }) => (
           <td className="px-6 py-4 text-slate-300">{new Date(d.driveDate).toLocaleDateString()}</td>
           <td className="px-6 py-4 uppercase text-xs font-bold text-slate-400">{d.driveType}</td>
           <td className="px-6 py-4 text-center">{d.timeDurationInMin}m</td>
-          <td className="px-6 py-4 text-center">{d.totalMarks}</td>
+          <td className="px-6 py-4 text-center">{d.driveType === 'Assessment' ? `${d.mcqCount || 0} MCQ, ${d.codeCount || 0} Code` : 'N/A'}</td>
+          <td className="px-6 py-4 text-center">{d.driveType === 'Assessment' ? d.totalMarks : 'N/A'}</td>
           <td className="px-6 py-4 text-right">
             <button onClick={() => onDelete(d._id)} className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors">
               <Trash2 size={16} />
@@ -313,11 +315,13 @@ const DriveModal = ({ onClose, onSuccess, token }) => {
   const [formData, setFormData] = useState({
     hiringPositionName: "",
     driveDate: "",
-    driveType: "mcq",
+    driveType: "Assessment",
     difficulty: "Intermediate",
     timeDurationInMin: "",
-    numberOfQuestions: "",
-    marksPerQuestion: ""
+    mcqCount: "",
+    codeCount: "",
+    mcqMarks: "",
+    codeMarks: ""
   });
 
   const handleSubmit = async (e) => {
@@ -326,8 +330,10 @@ const DriveModal = ({ onClose, onSuccess, token }) => {
       const payload = {
         ...formData,
         timeDurationInMin: Number(formData.timeDurationInMin),
-        numberOfQuestions: Number(formData.numberOfQuestions),
-        marksPerQuestion: Number(formData.marksPerQuestion),
+        mcqCount: Number(formData.mcqCount) || 0,
+        codeCount: Number(formData.codeCount) || 0,
+        mcqMarks: Number(formData.mcqMarks) || 0,
+        codeMarks: Number(formData.codeMarks) || 0,
       };
 
       const res = await fetch(`${API_URL}/drives`, {
@@ -376,10 +382,11 @@ const DriveModal = ({ onClose, onSuccess, token }) => {
               <select
                 name="driveType"
                 onChange={handleChange}
+                value={formData.driveType}
                 className="w-full bg-[#1a1c23] border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:border-indigo-500"
               >
-                <option value="mcq">MCQ</option>
-                <option value="code base">Code Base</option>
+                <option value="Assessment">Assessment</option>
+                <option value="Interview">Interview</option>
               </select>
             </div>
 
@@ -403,14 +410,27 @@ const DriveModal = ({ onClose, onSuccess, token }) => {
               <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Duration (Min)</label>
               <input required type="number" name="timeDurationInMin" onChange={handleChange} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:border-indigo-500" />
             </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Total Questions</label>
-              <input required type="number" name="numberOfQuestions" onChange={handleChange} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:border-indigo-500" />
-            </div>
-            <div className="col-span-2">
-              <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Marks Per Question</label>
-              <input required type="number" name="marksPerQuestion" onChange={handleChange} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:border-indigo-500" />
-            </div>
+
+            {formData.driveType === "Assessment" && (
+              <>
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Number of MCQs</label>
+                  <input required type="number" name="mcqCount" onChange={handleChange} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:border-indigo-500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Number of Code Qs</label>
+                  <input required type="number" name="codeCount" onChange={handleChange} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:border-indigo-500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Marks per MCQ</label>
+                  <input required type="number" name="mcqMarks" onChange={handleChange} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:border-indigo-500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Marks per Code Q</label>
+                  <input required type="number" name="codeMarks" onChange={handleChange} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white outline-none focus:border-indigo-500" />
+                </div>
+              </>
+            )}
           </div>
           <div className="mt-8">
             <button type="submit" className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg transition-all">
@@ -423,6 +443,7 @@ const DriveModal = ({ onClose, onSuccess, token }) => {
   );
 };
 
+// ... existing InterviewModal, EditInterviewModal below without changes
 const InterviewModal = ({ onClose, onSuccess, token }) => {
   const [step, setStep] = useState(1);
   const [drives, setDrives] = useState([]);

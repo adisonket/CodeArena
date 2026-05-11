@@ -4,7 +4,7 @@ import LenisScroll from "../../components/lenis";
 import Header from "../../components/Header";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import * as faceapi from "face-api.js";
 import vapi from "../../lib/vapi";
 
@@ -80,8 +80,6 @@ const DeviceSetupModal = ({ isOpen, onClose, onConfirm, isModelsLoaded }) => {
         };
     }, [isOpen]);
 
-
-
     return (
         <AnimatePresence>
             {isOpen && (
@@ -144,7 +142,12 @@ const WaveBar = ({ color = "bg-violet-400" }) => (
 
 const Interview = () => {
     const { user } = useAuth();
+    const location = useLocation();
     const navigate = useNavigate();
+    
+    // Retrieve the drive details passed from DrivePreview
+    const drive = location.state?.drive;
+
     const [elapsed, setElapsed] = useState(0);
     const [isMuted, setIsMuted] = useState(false);
     const [aiSpeaking, setAiSpeaking] = useState(false);
@@ -159,10 +162,8 @@ const Interview = () => {
     const [isModelsLoaded, setIsModelsLoaded] = useState(false);
     const [cameraError, setCameraError] = useState("");
     const [callActive, setCallActive] = useState(false);
-    const [liveTranscript, setLiveTranscript] = useState("");
 
     const [isSetupModalOpen, setIsSetupModalOpen] = useState(true);
-
 
     const [modalConfig, setModalConfig] = useState({
         isOpen: false,
@@ -191,165 +192,137 @@ const Interview = () => {
     };
 
     const violations = useRef({
-
         tab: 0,
         keyboard: 0,
         noFace: 0,
         fullscreen: 0,
     });
 
-    const startActualInterview = async () => {
+    // Submits the interview result to the backend so the drive unlocks "View Result"
+    const submitInterviewResult = async (finalStatus = "Completed", reason = "") => {
+        try {
+            const token = localStorage.getItem("token");
+            await fetch("http://localhost:4000/api/auth/submit-result", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    driveId: drive?._id,
+                    score: 0, // Mock score for Interview or can be updated by AI later
+                    timeTaken: elapsed,
+                    status: finalStatus,
+                    violations: violations.current,
+                    terminationReason: reason
+                })
+            });
+        } catch (err) {
+            console.error("Failed to submit interview result", err);
+        }
+    };
 
+    // Helper to terminate and submit results simultaneously
+    const terminateInterview = async (reason) => {
+        isEndingInterview.current = true;
+        setStatus("ended");
+        if (streamRef.current) streamRef.current.getTracks().forEach(track => track.stop());
+        if (document.fullscreenElement) await document.exitFullscreen().catch(()=>{});
+        window.speechSynthesis.cancel();
+        try { await vapi.stop(); } catch (e) { }
+
+        await submitInterviewResult("Terminated", reason);
+        
+        triggerAlert(
+            "Interview Terminated",
+            reason,
+            "danger",
+            () => navigate("/drive")
+        );
+    };
+
+    const startActualInterview = async () => {
         setIsSetupModalOpen(false);
-    
         setSessionStarted(true);
-    
         setStatus("active");
-    
         startVapiInterview();
     
         try {
-    
             await document.documentElement.requestFullscreen();
-    
         } catch (err) {
-    
-            console.warn(
-                "Fullscreen rejected"
-            );
+            console.warn("Fullscreen rejected");
         }
     };
 
     const startVapiInterview = async () => {
-
         try {
-    
-            await vapi.start(
-                import.meta.env
-                    .VITE_VAPI_ASSISTANT_ID
-            );
-    
+            await vapi.start(import.meta.env.VITE_VAPI_ASSISTANT_ID);
             setCallActive(true);
-    
         } catch (error) {
-    
             console.log(error);
         }
     };
 
     useEffect(() => {
-
         vapi.on("call-start", () => {
-    
             console.log("CALL STARTED");
-    
         });
     
         vapi.on("call-end", () => {
-    
             console.log("CALL ENDED");
-    
             setCallActive(false);
-    
         });
     
         vapi.on("speech-start", () => {
-    
             console.log("AI SPEAKING");
-    
             setAiSpeaking(true);
         });
     
         vapi.on("speech-end", () => {
-    
             console.log("AI STOPPED");
-    
             setAiSpeaking(false);
         });
     
         vapi.on("message", (message) => {
+            console.log("VAPI MESSAGE:", message);
     
-            console.log(
-                "VAPI MESSAGE:",
-                message
-            );
-    
-            if (
-                message.type === "transcript"
-            ) {
-    
-                if (
-                    message.role === "assistant"
-                ) {
-    
-                    setCurrentQuestion(
-                        message.transcript
-                    );
+            if (message.type === "transcript") {
+                if (message.role === "assistant") {
+                    setCurrentQuestion(message.transcript);
                 }
     
-                if (
-                    message.role === "user"
-                ) {
-    
+                if (message.role === "user") {
                     setCandidateSpeaking(true);
-    
                     setCandidateAnswer((prev) =>
-                        prev
-                            ? `${prev} ${message.transcript}`
-                            : message.transcript
+                        prev ? `${prev} ${message.transcript}` : message.transcript
                     );
     
                     setTimeout(() => {
-    
                         setCandidateSpeaking(false);
-    
                     }, 1200);
                 }
             }
         });
     
         vapi.on("error", (e) => {
-    
-            console.log(
-                "VAPI ERROR:",
-                e
-            );
+            console.log("VAPI ERROR:", e);
         });
     
         return () => {
-    
             vapi.stop();
         };
-    
     }, []);
 
-
-
     useEffect(() => {
-
         if (status !== "active") return;
 
         const handleViolation = (reason) => {
-
             violations.current.tab += 1;
-
             if (violations.current.tab >= 3) {
-
-                triggerAlert(
-                    "Interview Terminated",
-                    `${reason}. Multiple violations detected.`,
-                    "danger",
-                    () => navigate("/")
-                );
-
+                terminateInterview(`${reason}. Multiple violations detected.`);
                 return;
             }
-
-            triggerAlert(
-                "Warning",
-                `${reason}. Warning ${violations.current.tab}/2`,
-                "danger"
-            );
+            triggerAlert("Warning", `${reason}. Warning ${violations.current.tab}/2`, "danger");
         };
 
         const handleVisibility = () => {
@@ -359,25 +332,13 @@ const Interview = () => {
         };
 
         const handleFullscreen = () => {
-
-            // Ignore intentional exit
             if (isEndingInterview.current) return;
 
-            // User manually exited fullscreen
             if (!document.fullscreenElement) {
-
                 violations.current.fullscreen += 1;
 
-                // Terminate after 2 warnings
                 if (violations.current.fullscreen >= 3) {
-
-                    triggerAlert(
-                        "Interview Terminated",
-                        "Multiple fullscreen violations detected.",
-                        "danger",
-                        () => navigate("/")
-                    );
-
+                    terminateInterview("Multiple fullscreen violations detected.");
                     return;
                 }
 
@@ -386,15 +347,10 @@ const Interview = () => {
                     `Fullscreen exit detected. Warning ${violations.current.fullscreen}/2. Click Continue to resume interview.`,
                     "danger",
                     async () => {
-
                         try {
-
                             await document.documentElement.requestFullscreen();
-
                         } catch (err) {
-
                             console.error("Failed to re-enter fullscreen");
-
                         }
                     }
                 );
@@ -402,57 +358,26 @@ const Interview = () => {
         };
 
         const handleKeyDown = (e) => {
-
             const key = e.key.toLowerCase();
-
             if (
                 key === "f12" ||
                 (e.altKey && key === "tab") ||
-                ((e.ctrlKey || e.metaKey) &&
-                    ["c", "v", "u", "p"].includes(key))
+                ((e.ctrlKey || e.metaKey) && ["c", "v", "u", "p"].includes(key))
             ) {
-
                 e.preventDefault();
-
                 handleViolation("Restricted shortcut detected");
             }
         };
 
-        document.addEventListener(
-            "visibilitychange",
-            handleVisibility
-        );
-
-        document.addEventListener(
-            "fullscreenchange",
-            handleFullscreen
-        );
-
-        document.addEventListener(
-            "keydown",
-            handleKeyDown,
-            true
-        );
+        document.addEventListener("visibilitychange", handleVisibility);
+        document.addEventListener("fullscreenchange", handleFullscreen);
+        document.addEventListener("keydown", handleKeyDown, true);
 
         return () => {
-
-            document.removeEventListener(
-                "visibilitychange",
-                handleVisibility
-            );
-
-            document.removeEventListener(
-                "fullscreenchange",
-                handleFullscreen
-            );
-
-            document.removeEventListener(
-                "keydown",
-                handleKeyDown,
-                true
-            );
+            document.removeEventListener("visibilitychange", handleVisibility);
+            document.removeEventListener("fullscreenchange", handleFullscreen);
+            document.removeEventListener("keydown", handleKeyDown, true);
         };
-
     }, [status]);
 
     useEffect(() => {
@@ -461,39 +386,24 @@ const Interview = () => {
     }, []);
 
     useEffect(() => {
-
         const loadModels = async () => {
-
             try {
-
                 const MODEL_URL = "/models";
-
                 await Promise.all([
                     faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
                     faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
                 ]);
-
                 setIsModelsLoaded(true);
-
             } catch (err) {
-
                 console.error("Failed to load AI models.", err);
-
             }
         };
-
         loadModels();
-
     }, []);
 
-
-
     const endInterview = async () => {
-
         try {
-
             isEndingInterview.current = true;
-
             setStatus("ended");
 
             if (streamRef.current) {
@@ -501,18 +411,17 @@ const Interview = () => {
             }
 
             if (document.fullscreenElement) {
-                await document.exitFullscreen();
+                await document.exitFullscreen().catch(()=>{});
             }
 
+            // Save result to backend when user intentionally finishes
+            await submitInterviewResult("Completed", "User ended call");
+
         } catch (err) {
-
-            console.error("Failed to exit fullscreen", err);
-
+            console.error("Failed to end interview properly", err);
         } finally {
             window.speechSynthesis.cancel();
-
-            await vapi.stop();
-
+            try { await vapi.stop(); } catch(e){}
             navigate("/drive");
         }
     };
@@ -523,24 +432,15 @@ const Interview = () => {
         return `${m}:${sec}`;
     };
 
-    const candidateName = user
-        ? `${user.firstName} ${user.lastName}`
-        : "Candidate";
+    const candidateName = user ? `${user.firstName} ${user.lastName}` : "Candidate";
 
     useEffect(() => {
-
         let isMounted = true;
 
         async function enableCamera() {
-
             try {
-
                 const stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        width: 1280,
-                        height: 720,
-                        facingMode: "user",
-                    },
+                    video: { width: 1280, height: 720, facingMode: "user" },
                     audio: true,
                 });
 
@@ -556,9 +456,7 @@ const Interview = () => {
                 }
 
             } catch (err) {
-
                 setCameraError("Camera access denied.");
-
             }
         }
 
@@ -567,22 +465,17 @@ const Interview = () => {
         }
 
         return () => {
-
             isMounted = false;
-
             if (streamRef.current) {
                 streamRef.current.getTracks().forEach(track => track.stop());
             }
         };
-
     }, [status]);
 
     useEffect(() => {
-
         if (status !== "active" || !isModelsLoaded) return;
 
         const interval = setInterval(async () => {
-
             if (!videoRef.current) return;
 
             const detection = await faceapi.detectSingleFace(
@@ -591,98 +484,59 @@ const Interview = () => {
             );
 
             if (!detection) {
-
                 violations.current.noFace += 1;
-
                 if (violations.current.noFace >= 3) {
-
-                    triggerAlert(
-                        "Face Not Detected",
-                        "No face detected repeatedly. Interview terminated.",
-                        "danger",
-                        () => navigate("/")
-                    );
-
+                    terminateInterview("No face detected repeatedly. Interview terminated.");
                 } else {
-
                     triggerAlert(
                         "Face Warning",
                         `Face not visible. Warning ${violations.current.noFace}/2`,
                         "danger"
                     );
                 }
-
             }
-
         }, 10000);
 
         return () => clearInterval(interval);
-
     }, [status, isModelsLoaded]);
 
     return (
-
         <>
             <SoftBackdrop />
             <LenisScroll />
-            <CustomModal
-                {...modalConfig}
-                onClose={closeModal}
-            />
+            <CustomModal {...modalConfig} onClose={closeModal} />
 
             <DeviceSetupModal
                 isOpen={isSetupModalOpen}
-                onClose={() => navigate("/")}
+                onClose={() => navigate("/drive")}
                 onConfirm={startActualInterview}
                 isModelsLoaded={isModelsLoaded}
             />
-            {/* <Header /> */}
 
-            {/* <div className="relative min-h-screen flex flex-col items-start px-8 pt-10 pb-10"> */}
             <div className="relative h-screen overflow-hidden flex flex-col items-start px-8 pt-8 pb-16">
 
                 {/* ── Top heading ── */}
                 <div className="w-full flex items-center justify-between mb-6">
-
                     <div className="flex flex-col gap-1.5">
-
                         <div className="flex items-center gap-2 text-sm text-white/40 tracking-wide">
                             <span className="w-1.5 h-1.5 rounded-full bg-violet-400 inline-block" />
-
                             AI Interview Session
-
-                            <svg
-                                className="w-3.5 h-3.5 text-white/25"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                            >
+                            <svg className="w-3.5 h-3.5 text-white/25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <circle cx="12" cy="12" r="3" />
                                 <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
                             </svg>
                         </div>
-
                         <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-indigo-500 via-indigo-400 to-indigo-300 bg-clip-text text-transparent tracking-tight">
                             Welcome, {candidateName}
                         </h1>
                     </div>
 
-
                     {/* Timer */}
                     <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-2">
-
-                        <svg
-                            className="w-4 h-4 text-violet-400"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                        >
+                        <svg className="w-4 h-4 text-violet-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
                             <circle cx="12" cy="12" r="10" />
                             <polyline points="12 6 12 12 16 14" />
                         </svg>
-
                         <span className="text-sm font-semibold text-slate-200 tabular-nums tracking-widest">
                             {formatTime(elapsed)}
                         </span>
@@ -691,11 +545,9 @@ const Interview = () => {
 
                 {/* ── Session subtitle ── */}
                 <div className="w-full">
-
                     <p className="text-sm text-white/35 tracking-wide mb-25">
                         AI Interview in Sessions...
                     </p>
-
                 </div>
 
                 {/* ── Interview panels ── */}
@@ -703,20 +555,14 @@ const Interview = () => {
 
                     {/* Left — AI Recruiter */}
                     <motion.div
-                        className="relative flex flex-col items-center justify-center gap-3 rounded-2xl px-8 py-12
-                       bg-white/[0.04] backdrop-blur-xl border border-white/[0.07] overflow-hidden"
+                        className="relative flex flex-col items-center justify-center gap-3 rounded-2xl px-8 py-12 bg-white/[0.04] backdrop-blur-xl border border-white/[0.07] overflow-hidden"
                         animate={{
                             scale: aiSpeaking ? 1.013 : 1,
-                            borderColor: aiSpeaking
-                                ? "rgba(139,92,246,0.65)"
-                                : "rgba(255,255,255,0.07)",
-                            boxShadow: aiSpeaking
-                                ? "0 0 36px rgba(139,92,246,0.22), inset 0 0 40px rgba(139,92,246,0.06)"
-                                : "none",
+                            borderColor: aiSpeaking ? "rgba(139,92,246,0.65)" : "rgba(255,255,255,0.07)",
+                            boxShadow: aiSpeaking ? "0 0 36px rgba(139,92,246,0.22), inset 0 0 40px rgba(139,92,246,0.06)" : "none",
                         }}
                         transition={{ duration: 0.45, ease: "easeInOut" }}
                     >
-                        {/* Pulsing border ring */}
                         <AnimatePresence>
                             {aiSpeaking && (
                                 <motion.div
@@ -738,26 +584,21 @@ const Interview = () => {
                                     className="w-full h-full object-cover"
                                 />
                             </div>
-                            {/* Online indicator */}
                             <span className="absolute bottom-1 left-1 w-[18px] h-[18px] rounded-full bg-[#0d0f1a] border border-white/15 flex items-center justify-center">
                                 <span className="w-2 h-2 rounded-full bg-emerald-400 block" />
                             </span>
-                            {/* AI badge */}
                             <span className="absolute bottom-0 right-0 text-[9px] font-bold tracking-widest bg-gradient-to-br from-violet-600 to-purple-500 text-white rounded-full px-1.5 py-0.5 border border-white/10 leading-none">
                                 AI
                             </span>
                         </div>
 
                         <div className="flex flex-col items-center">
-
                             <p className="text-[15px] font-semibold text-white/90 tracking-wide">
                                 AI Recruiter
                             </p>
-
                             <p className="text-xs text-white/60 text-center mt-3 max-w-[240px] leading-relaxed">
                                 {currentQuestion}
                             </p>
-
                         </div>
 
                         {aiSpeaking ? (
@@ -768,22 +609,15 @@ const Interview = () => {
                     </motion.div>
 
                     {/* Right — Candidate */}
-                    {/* Right — Candidate */}
                     <motion.div
-                        className="relative flex flex-col items-center justify-center gap-3 rounded-2xl px-8 py-12
-                    bg-white/[0.04] backdrop-blur-xl border border-white/[0.07] overflow-hidden"
+                        className="relative flex flex-col items-center justify-center gap-3 rounded-2xl px-8 py-12 bg-white/[0.04] backdrop-blur-xl border border-white/[0.07] overflow-hidden"
                         animate={{
                             scale: candidateSpeaking ? 1.013 : 1,
-                            borderColor: candidateSpeaking
-                                ? "rgba(52,211,153,0.65)"
-                                : "rgba(255,255,255,0.07)",
-                            boxShadow: candidateSpeaking
-                                ? "0 0 36px rgba(52,211,153,0.2), inset 0 0 40px rgba(52,211,153,0.05)"
-                                : "none",
+                            borderColor: candidateSpeaking ? "rgba(52,211,153,0.65)" : "rgba(255,255,255,0.07)",
+                            boxShadow: candidateSpeaking ? "0 0 36px rgba(52,211,153,0.2), inset 0 0 40px rgba(52,211,153,0.05)" : "none",
                         }}
                         transition={{ duration: 0.45, ease: "easeInOut" }}
                     >
-
                         <AnimatePresence>
                             {candidateSpeaking && (
                                 <motion.div
@@ -798,7 +632,6 @@ const Interview = () => {
 
                         {/* Webcam */}
                         <div className="relative w-full max-w-[320px] aspect-video rounded-2xl overflow-hidden border border-emerald-400/20 bg-black shadow-[0_0_30px_rgba(52,211,153,0.15)]">
-
                             <video
                                 ref={videoRef}
                                 autoPlay
@@ -806,16 +639,12 @@ const Interview = () => {
                                 muted
                                 className="w-full h-full object-cover scale-x-[-1]"
                             />
-
-                            {/* Live Badge */}
                             <div className="absolute top-3 left-3 flex items-center gap-2 px-3 py-1 rounded-full bg-black/60 border border-white/10 backdrop-blur-md">
                                 <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                                 <span className="text-[10px] tracking-[0.2em] text-white/80 uppercase">
                                     Live
                                 </span>
                             </div>
-
-                            {/* Candidate Name */}
                             <div className="absolute bottom-3 left-3 px-3 py-1 rounded-full bg-black/50 backdrop-blur-md border border-white/10">
                                 <p className="text-xs text-white/90 font-medium">
                                     {candidateName}
@@ -841,20 +670,13 @@ const Interview = () => {
                     <motion.button
                         whileTap={{ scale: 0.91 }}
                         onClick={() => {
-
-                            const nextMuted =
-                                !isMuted;
-                        
+                            const nextMuted = !isMuted;
                             setIsMuted(nextMuted);
-                        
                             vapi.setMuted(nextMuted);
                         }}
                         aria-label={isMuted ? "Unmute microphone" : "Mute microphone"}
                         className={`w-14 h-14 rounded-full flex items-center justify-center border outline-none transition-colors duration-200
-              ${isMuted
-                                ? "bg-red-500/15 border-red-500/40"
-                                : "bg-white/10 border-white/15 hover:bg-white/15"
-                            }`}
+              ${isMuted ? "bg-red-500/15 border-red-500/40" : "bg-white/10 border-white/15 hover:bg-white/15"}`}
                     >
                         {isMuted ? (
                             <svg className="w-5 h-5 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
