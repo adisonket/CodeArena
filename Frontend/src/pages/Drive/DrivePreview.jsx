@@ -231,7 +231,7 @@ const DrivePreview = () => {
     );
 
     if (now < startTime) {
-      return { state: "upcoming", text: "Start Interview" };
+      return { state: "upcoming", text: "Start Drive" };
     } else if (now >= startTime && now <= endTime) {
       if (hasResult)
         return {
@@ -239,7 +239,7 @@ const DrivePreview = () => {
           text: "View Result",
           resultId: hasResult._id,
         };
-      return { state: "active", text: "Start Interview" };
+      return { state: "active", text: "Start  Drive" };
     } else {
       if (hasResult)
         return {
@@ -362,9 +362,6 @@ const DrivePreview = () => {
                       </span>
                       <span className="flex items-center gap-1.5 uppercase text-xs font-bold text-indigo-300">
                         {drive.driveType}
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        {drive.totalMarks} Marks
                       </span>
                     </div>
                   </div>

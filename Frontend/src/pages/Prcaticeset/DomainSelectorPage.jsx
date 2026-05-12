@@ -483,10 +483,11 @@ export default function DomainSelectorPage() {
 
   return (
     <>
-      <Header />
       <SoftBackdropNew />
       <LenisScroll />
-
+      <div className="relative z-50">
+        <Header />
+      </div>
       {/* Difficulty popup */}
       {popup && (
         <DifficultyPopup

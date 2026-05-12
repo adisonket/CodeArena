@@ -16,6 +16,7 @@ import SignUp from "./pages/SignUp/SignUp";
 
 import { useAuth } from "./context/AuthContext.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
+import Dash from "./pages/Dashboard/Dashboard.jsx";
 import AuthCallback from "./pages/AuthCallback.jsx";
 import VerifyEmail from "./pages/VerifyEmail.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
@@ -26,6 +27,7 @@ import CandidatesPage from "./components/admin/sidebar/Candidatespage.jsx";
 import AdminLoginPage from "./pages/Admin/AdminLoginPage.jsx";
 import AdminDash from "./pages/AdminDash";
 import AdminDrive from "./components/admin/sidebar/AdminDrive.jsx";
+import UserProfileForm from "./pages/Registration/UserProfileForm.jsx";
 
 
 function App() {
@@ -49,7 +51,7 @@ function App() {
       <Route path="/drive" element={<DrivePreview />} />
       <Route path="/assessment" element={<Assessment />} />
       <Route path="/domainselector" element={<DomainSelectorPage />} />
-      {/* <Route path="/dashboard" element={<Dashboard />} /> */}
+      <Route path="/dash" element={<Dash />} />
       {/* <Route path="/profile" element={<ProfileDashboard />} /> */}
       <Route path="/login" element={<AuthPage />} />
       <Route path="/forgot" element={<ForgotPassword />} />
@@ -64,6 +66,7 @@ function App() {
       <Route path="/admindrive" element={<AdminDrive />} />
 
       <Route path="/interview" element={<Interview/>} />
+      <Route path="/registration" element={<UserProfileForm />} />
 
       {/* Protected routes */}
       <Route

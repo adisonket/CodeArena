@@ -164,7 +164,6 @@ const Assessment = () => {
   const closeModal = () => setModalConfig((prev) => ({ ...prev, isOpen: false }));
   const triggerAlert = (title, message, type = "info", onConfirm = null) => { setModalConfig({ isOpen: true, title, message, type, onConfirm }); };
 
-  // Current question type detection
   const currentQuestionType = questions[currentQ]?.type || "MCQ";
   const isCurrentMCQ = currentQuestionType === "MCQ";
   const isCurrentCoding = currentQuestionType === "CODING";
@@ -185,7 +184,6 @@ const Assessment = () => {
       try {
         let allQuestions = [];
 
-        // Fetch MCQs
         if (drive.mcqCount && drive.mcqCount > 0) {
           const res = await fetch(`${import.meta.env.VITE_API_URL}/api/ai/generate`, {
             method: "POST",
@@ -203,7 +201,6 @@ const Assessment = () => {
           }
         }
 
-        // Fetch Coding Questions
         if (drive.codeCount && drive.codeCount > 0) {
           const res = await fetch(`${import.meta.env.VITE_API_URL}/api/ai/generate`, {
             method: "POST",
@@ -528,15 +525,6 @@ const Assessment = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="p-[2px] rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-indigo-900 shadow-[0_0_15px_rgba(139,92,246,0.4)]">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full overflow-hidden bg-[#0f172a] flex items-center justify-center text-base font-bold text-white">
-              {user?.picture ? (
-                <img src={user.picture} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-              ) : (
-                `${user?.firstName?.charAt(0) || ""}${user?.lastName?.charAt(0) || ""}`.toUpperCase()
-              )}
-            </div>
-          </div>
           <span className="text-lg sm:text-xl font-bold text-white hidden sm:block">
             {user?.firstName} {user?.lastName}
           </span>
@@ -640,7 +628,6 @@ const Assessment = () => {
 
           <div className="flex-1 min-h-0 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 lg:p-8 flex flex-col shadow-2xl">
 
-            {/* Question Number Navigation */}
             {status === "active" && (
               <div className="flex gap-2 flex-wrap mb-6 shrink-0">
                 {questions.map((q, idx) => (
@@ -661,14 +648,12 @@ const Assessment = () => {
               </div>
             )}
 
-            {/* Main Content */}
-            <div className="flex-1 overflow-y-auto mb-4 lg:mb-6 pr-2 scrollbar-thin">
+            <div className="flex-1 overflow-y-auto mb-4 lg:mb-6 pr-2 scrollbar-thin" data-lenis-prevent="true">
 
               {status === "active" && isCurrentCoding ? (
 
                 <div className="space-y-4">
 
-                  {/* Current Question */}
                   <div className="p-5 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl shadow-inner">
                     <span className="text-xs font-black text-indigo-400 uppercase tracking-wider mb-3 block">
                       Current Task (Q{currentQ + 1})
@@ -679,7 +664,6 @@ const Assessment = () => {
                     </p>
                   </div>
 
-                  {/* Execution Status */}
                   <div className="px-4 py-3 bg-black/20 rounded-xl text-xs text-gray-400 border border-white/5">
                     <span className="font-bold text-gray-300 block mb-1">
                       Live Execution Active:
@@ -706,7 +690,6 @@ const Assessment = () => {
 
             </div>
 
-            {/* Submit Button */}
             <div className="flex justify-center shrink-0">
 
               <button
