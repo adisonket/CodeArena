@@ -26,6 +26,7 @@ import AdminDashboard2 from "./pages/Admin/AdminDashboard2.jsx";
 import CandidatesPage from "./components/admin/sidebar/Candidatespage.jsx";
 import AdminLoginPage from "./pages/Admin/AdminLoginPage.jsx";
 import AdminDash from "./pages/AdminDash";
+import UserProfileForm from "./pages/Registration/UserProfileForm.jsx";
 
 
 function App() {
@@ -63,6 +64,7 @@ function App() {
       <Route path="/candidate" element={<CandidatesPage />} />
 
       <Route path="/interview" element={<Interview/>} />
+      <Route path="/registration" element={<UserProfileForm />} />
 
       {/* Protected routes */}
       <Route
