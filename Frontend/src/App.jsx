@@ -16,6 +16,7 @@ import SignUp from "./pages/SignUp/SignUp";
 
 import { useAuth } from "./context/AuthContext.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
+import Dash from "./pages/Dashboard/Dashboard.jsx";
 import AuthCallback from "./pages/AuthCallback.jsx";
 import VerifyEmail from "./pages/VerifyEmail.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
@@ -43,7 +44,7 @@ function App() {
       <Route path="/drive" element={<DrivePreview />} />
       <Route path="/assessment" element={<Assessment />} />
       <Route path="/domainselector" element={<DomainSelectorPage />} />
-      {/* <Route path="/dashboard" element={<Dashboard />} /> */}
+      <Route path="/dash" element={<Dash />} />
       {/* <Route path="/profile" element={<ProfileDashboard />} /> */}
       <Route path="/login" element={<AuthPage />} />
       <Route path="/forgot" element={<ForgotPassword />} />
