@@ -5,7 +5,7 @@ import Assessment from "./pages/InterView/Assessment.jsx";
 
 import PracticeSet from "./pages/Prcaticeset/PracticeSet.jsx";
 import DomainSelectorPage from "./pages/Prcaticeset/DomainSelectorPage";
-
+import FeedbackPanel from "./pages/LoginProfile/FeedbackPanel.jsx";
 import ProfileDashboard from "./pages/LoginProfile/ProfileDashboard";
 import AuthPage from "./pages/LoginProfile/AuthPage";
 import ForgotPassword from "./pages/LoginProfile/ForgotPassword";
@@ -22,6 +22,11 @@ import VerifyEmail from "./pages/VerifyEmail.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import AdminDashboard from "./pages/Admin/AdminDashboard.jsx";
 import Interview from "./pages/InterView/Interview.jsx";
+import AdminDashboard2 from "./pages/Admin/AdminDashboard2.jsx";
+import CandidatesPage from "./components/admin/sidebar/Candidatespage.jsx";
+import AdminLoginPage from "./pages/Admin/AdminLoginPage.jsx";
+import AdminDash from "./pages/AdminDash";
+
 
 function App() {
   const { isLoggedIn, loading } = useAuth();
@@ -48,8 +53,14 @@ function App() {
       {/* <Route path="/profile" element={<ProfileDashboard />} /> */}
       <Route path="/login" element={<AuthPage />} />
       <Route path="/forgot" element={<ForgotPassword />} />
+      <Route path="/feedback" element={<FeedbackPanel />} />
 
       <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/adminlogin" element={<AdminLoginPage />} />
+      <Route path="/admindashboard" element={<AdminDash />} />
+
+      <Route path="/admindash" element={<AdminDashboard2 />} />
+      <Route path="/candidate" element={<CandidatesPage />} />
 
       <Route path="/interview" element={<Interview/>} />
 

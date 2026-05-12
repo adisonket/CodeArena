@@ -30,7 +30,7 @@ export default function Dashboard() {
         }}>
           {user?.picture ? (
             <img
-            src={user.picture}
+            src={user.picture.startsWith('http') ? user.picture : `http://localhost:4000${user.picture}`}
             alt="Profile"
             referrerPolicy="no-referrer"
             style={{
