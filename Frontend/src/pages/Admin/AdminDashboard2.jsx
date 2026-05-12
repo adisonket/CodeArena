@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import SoftBackdrop from "../../components/SoftBackdrop";
-import LenisScroll from "../../components/lenis";
 
 import Header from "../../components/admin/dashboard/Header";
 import Sidebar from "../../components/admin/dashboard/Sidebar";
@@ -13,14 +12,20 @@ import TrendsSection from "../../components/admin/dashboard/TrendsSection";
 import SystemHealth from "../../components/admin/dashboard/SystemHealth";
 
 import CandidatesPage from "../../components/admin/sidebar/Candidatespage";
+import AdminDrive from "../../components/admin/sidebar/AdminDrive";
+
 
 const AdminDashboard2 = () => {
-    const [activeTab, setActiveTab] =
-        useState("dashboard");
 
-    const [now, setNow] = useState(
-        new Date()
-    );
+    const [activeTab, setActiveTab] = useState(() => {
+        return localStorage.getItem("adminActiveTab") || "dashboard";
+    });
+
+    const [now, setNow] = useState(new Date());
+
+    useEffect(() => {
+        localStorage.setItem("adminActiveTab", activeTab);
+    }, [activeTab]);
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -32,24 +37,29 @@ const AdminDashboard2 = () => {
 
     return (
         <>
-            <LenisScroll />
+
 
             <div className="fixed inset-0 -z-10">
                 <SoftBackdrop />
             </div>
 
-            <div className="relative min-h-screen flex flex-col bg-transparent">
+            {/* <div className="relative min-h-screen flex flex-col bg-transparent"> */}
+            {/* <div className="relative h-screen flex flex-col bg-transparent overflow-hidden"> */}
+            <div className="relative h-screen flex flex-col bg-transparent">
 
                 <Header now={now} />
 
-                <div className="flex flex-1 pl-52">
+                {/* <div className="flex flex-1 pl-52"> */}
+                <div className="flex flex-1 pl-52 overflow-hidden">
 
                     <Sidebar
                         activeTab={activeTab}
                         setActiveTab={setActiveTab}
                     />
 
-                    <main className="flex-1 min-h-screen p-6 space-y-6">
+                    {/* <main className="flex-1 min-h-screen p-6 space-y-6"> */}
+                    {/* <main className="flex-1 h-[calc(100vh-73px)] overflow-y-auto p-6 space-y-6"> */}
+                    <main className="flex-1 h-[calc(100vh-73px)] overflow-y-scroll p-6 space-y-6">
 
                         {activeTab === "dashboard" && (
                             <>
@@ -77,6 +87,10 @@ const AdminDashboard2 = () => {
 
                         {activeTab === "candidates" && (
                             <CandidatesPage />
+                        )}
+
+                        {activeTab === "drives" && (
+                            <AdminDrive />
                         )}
 
                     </main>

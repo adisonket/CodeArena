@@ -25,6 +25,7 @@ import AdminDashboard2 from "./pages/Admin/AdminDashboard2.jsx";
 import CandidatesPage from "./components/admin/sidebar/Candidatespage.jsx";
 import AdminLoginPage from "./pages/Admin/AdminLoginPage.jsx";
 import AdminDash from "./pages/AdminDash";
+import AdminDrive from "./components/admin/sidebar/AdminDrive.jsx";
 
 
 function App() {
@@ -60,6 +61,7 @@ function App() {
 
       <Route path="/admindash" element={<AdminDashboard2 />} />
       <Route path="/candidate" element={<CandidatesPage />} />
+      <Route path="/admindrive" element={<AdminDrive />} />
 
       <Route path="/interview" element={<Interview/>} />
 

@@ -34,6 +34,8 @@ import {
     SlidersHorizontal,
     Hash,
 } from "lucide-react";
+import SoftBackdrop from "../../SoftBackdrop";
+import LenisScroll from "../../lenis";
 
 // ── mock data seeded from the provided DB document ────────────────────────────
 const CANDIDATES = [
@@ -221,6 +223,7 @@ const CandidateDrawer = ({ candidate, onClose }) => {
     const st = statusStyle[candidate.status] ?? statusStyle["Active"];
 
     return (
+        <>
         <AnimatePresence>
             <motion.div
                 key="overlay"
@@ -412,6 +415,7 @@ const CandidateDrawer = ({ candidate, onClose }) => {
                 </div>
             </motion.aside>
         </AnimatePresence>
+        </>
     );
 };
 
@@ -443,189 +447,191 @@ const CandidatesPage = () => {
     const avgScore       = Math.round(CANDIDATES.reduce((s, c) => s + c.avgScore, 0) / CANDIDATES.length);
 
     return (
-        <div className="h-full flex flex-col space-y-3 overflow-hidden">
+        <>
+            <div className="w-full flex flex-col space-y-3 ">
 
-            {/* page header */}
-            <div className="flex items-start justify-between">
-                <div>
-                    <div className="flex items-center gap-2 mb-1">
-                        <Users size={16} className="text-indigo-400" />
-                        <p className="text-white/45 font-semibold text-[11px] uppercase tracking-widest">Candidates</p>
+                {/* page header */}
+                <div className="flex items-start justify-between">
+                    <div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <Users size={16} className="text-indigo-400" />
+                            <p className="text-white/45 font-semibold text-[11px] uppercase tracking-widest">Candidates</p>
+                        </div>
+                        <h2 className="text-2xl font-extrabold text-white tracking-tight">Candidate Pool</h2>
+                        <p className="text-white/35 text-xs mt-0.5">{CANDIDATES.length} total candidates across all drives</p>
                     </div>
-                    <h2 className="text-2xl font-extrabold text-white tracking-tight">Candidate Pool</h2>
-                    <p className="text-white/35 text-xs mt-0.5">{CANDIDATES.length} total candidates across all drives</p>
-                </div>
-                <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white transition"
-                    style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
-                    <UserCheck size={13} /> Invite Candidate
-                </button>
-            </div>
-
-            {/* summary stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                    { label: "Total",     value: CANDIDATES.length, color: "#818cf8", Icon: Users },
-                    { label: "Active",    value: totalActive,       color: "#4ade80", Icon: UserCheck },
-                    { label: "Completed", value: totalCompleted,    color: "#38bdf8", Icon: BadgeCheck },
-                    { label: "Avg Score", value: avgScore,          color: "#facc15", Icon: Star },
-                ].map((s, i) => (
-                    <motion.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
-                        className="rounded-2xl p-3 border border-white/5 flex items-center gap-3"
-                        style={{ background: "rgba(255,255,255,0.025)" }}>
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                            style={{ background: `${s.color}18`, border: `1px solid ${s.color}35` }}>
-                            <s.Icon size={16} style={{ color: s.color }} />
-                        </div>
-                        <div>
-                            <p className="text-white font-bold text-xl leading-none">{s.value}</p>
-                            <p className="text-white/35 text-[11px] mt-0.5">{s.label}</p>
-                        </div>
-                    </motion.div>
-                ))}
-            </div>
-
-            {/* search + filter bar */}
-            <div className="flex flex-wrap items-center gap-3">
-                {/* search */}
-                <div className="relative flex-1 min-w-[200px]">
-                    <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
-                    <input
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Search by name, email, drive…"
-                        className="w-full pl-8 pr-4 py-2.5 rounded-xl text-xs text-white/80 placeholder-white/25 border border-white/6 outline-none focus:border-indigo-500/40 transition"
-                        style={{ background: "rgba(255,255,255,0.04)" }}
-                    />
-                    {search && (
-                        <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/60">
-                            <X size={12} />
-                        </button>
-                    )}
+                    <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white transition"
+                        style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
+                        <UserCheck size={13} /> Invite Candidate
+                    </button>
                 </div>
 
-                {/* status filter pills */}
-                <div className="flex items-center gap-1.5">
-                    {statuses.map((s) => (
-                        <button key={s} onClick={() => setFilterStatus(s)}
-                            className={`px-3 py-1.5 rounded-lg text-[11px] font-semibold transition border ${
-                                filterStatus === s
-                                    ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/30"
-                                    : "text-white/35 border-white/6 hover:bg-white/4 hover:text-white/60"
-                            }`}>
-                            {s}
-                        </button>
+                {/* summary stats */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {[
+                        { label: "Total", value: CANDIDATES.length, color: "#818cf8", Icon: Users },
+                        { label: "Active", value: totalActive, color: "#4ade80", Icon: UserCheck },
+                        { label: "Completed", value: totalCompleted, color: "#38bdf8", Icon: BadgeCheck },
+                        { label: "Avg Score", value: avgScore, color: "#facc15", Icon: Star },
+                    ].map((s, i) => (
+                        <motion.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
+                            className="rounded-2xl p-3 border border-white/5 flex items-center gap-3"
+                            style={{ background: "rgba(255,255,255,0.025)" }}>
+                            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                                style={{ background: `${s.color}18`, border: `1px solid ${s.color}35` }}>
+                                <s.Icon size={16} style={{ color: s.color }} />
+                            </div>
+                            <div>
+                                <p className="text-white font-bold text-xl leading-none">{s.value}</p>
+                                <p className="text-white/35 text-[11px] mt-0.5">{s.label}</p>
+                            </div>
+                        </motion.div>
                     ))}
                 </div>
 
-                {/* sort */}
-                <div className="relative">
-                    <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}
-                        className="appearance-none pl-8 pr-8 py-2.5 rounded-xl text-xs text-white/60 border border-white/6 outline-none cursor-pointer transition focus:border-indigo-500/40"
-                        style={{ background: "rgba(255,255,255,0.04)" }}>
-                        <option value="name">Sort: Name</option>
-                        <option value="score">Sort: Score</option>
-                        <option value="date">Sort: Date</option>
-                    </select>
-                    <SlidersHorizontal size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
-                    <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+                {/* search + filter bar */}
+                <div className="flex flex-wrap items-center gap-3">
+                    {/* search */}
+                    <div className="relative flex-1 min-w-[200px]">
+                        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+                        <input
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder="Search by name, email, drive…"
+                            className="w-full pl-8 pr-4 py-2.5 rounded-xl text-xs text-white/80 placeholder-white/25 border border-white/6 outline-none focus:border-indigo-500/40 transition"
+                            style={{ background: "rgba(255,255,255,0.04)" }}
+                        />
+                        {search && (
+                            <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/60">
+                                <X size={12} />
+                            </button>
+                        )}
+                    </div>
+
+                    {/* status filter pills */}
+                    <div className="flex items-center gap-1.5">
+                        {statuses.map((s) => (
+                            <button key={s} onClick={() => setFilterStatus(s)}
+                                className={`px-3 py-1.5 rounded-lg text-[11px] font-semibold transition border ${filterStatus === s
+                                        ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/30"
+                                        : "text-white/35 border-white/6 hover:bg-white/4 hover:text-white/60"
+                                    }`}>
+                                {s}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* sort */}
+                    <div className="relative">
+                        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}
+                            className="appearance-none pl-8 pr-8 py-2.5 rounded-xl text-xs text-white/60 border border-white/6 outline-none cursor-pointer transition focus:border-indigo-500/40"
+                            style={{ background: "rgba(255,255,255,0.04)" }}>
+                            <option value="name">Sort: Name</option>
+                            <option value="score">Sort: Score</option>
+                            <option value="date">Sort: Date</option>
+                        </select>
+                        <SlidersHorizontal size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+                        <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+                    </div>
                 </div>
-            </div>
 
-            {/* candidates table */}
-            <div className="rounded-2xl border border-white/5 overflow-hidden"
-                style={{ background: "rgba(255,255,255,0.025)" }}>
-                <table className="w-full text-xs">
-                    <thead>
-                        <tr className="text-white/30 border-b border-white/5">
-                            {["Candidate", "Drive", "Avg Score", "Completion", "Status", "Registered", "2FA", ""].map(h => (
-                                <th key={h} className="text-left px-5 py-3.5 font-medium whitespace-nowrap">{h}</th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <AnimatePresence>
-                            {filtered.length === 0 ? (
-                                <tr>
-                                    <td colSpan={8} className="px-5 py-12 text-center text-white/25 text-xs">
-                                        No candidates match your filters.
-                                    </td>
-                                </tr>
-                            ) : filtered.map((c, i) => {
-                                const st = statusStyle[c.status] ?? statusStyle["Active"];
-                                return (
-                                    <motion.tr key={c._id}
-                                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                                        transition={{ delay: i * 0.04 }}
-                                        onClick={() => setSelected(c)}
-                                        className="border-b border-white/[0.04] hover:bg-white/[0.025] transition-colors cursor-pointer group">
-                                        {/* candidate */}
-                                        <td className="px-5 py-3.5">
-                                            <div className="flex items-center gap-3">
-                                                <Avatar candidate={c} size={32} />
-                                                <div>
-                                                    <p className="text-white font-semibold">{c.firstName} {c.lastName}</p>
-                                                    <p className="text-white/35 text-[10px] mt-0.5">{c.email}</p>
+                {/* candidates table */}
+                <div className="rounded-2xl border border-white/5 overflow-hidden"
+                    style={{ background: "rgba(255,255,255,0.025)" }}>
+                    <table className="w-full text-xs">
+                        <thead>
+                            <tr className="text-white/30 border-b border-white/5">
+                                {["Candidate", "Drive", "Avg Score", "Completion", "Status", "Registered", "2FA", ""].map(h => (
+                                    <th key={h} className="text-left px-5 py-3.5 font-medium whitespace-nowrap">{h}</th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <AnimatePresence>
+                                {filtered.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={8} className="px-5 py-12 text-center text-white/25 text-xs">
+                                            No candidates match your filters.
+                                        </td>
+                                    </tr>
+                                ) : filtered.map((c, i) => {
+                                    const st = statusStyle[c.status] ?? statusStyle["Active"];
+                                    return (
+                                        <motion.tr key={c._id}
+                                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                                            transition={{ delay: i * 0.04 }}
+                                            onClick={() => setSelected(c)}
+                                            className="border-b border-white/[0.04] hover:bg-white/[0.025] transition-colors cursor-pointer group">
+                                            {/* candidate */}
+                                            <td className="px-5 py-3.5">
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar candidate={c} size={32} />
+                                                    <div>
+                                                        <p className="text-white font-semibold">{c.firstName} {c.lastName}</p>
+                                                        <p className="text-white/35 text-[10px] mt-0.5">{c.email}</p>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        {/* drive */}
-                                        <td className="px-5 py-3.5 text-white/50 whitespace-nowrap">{c.drive}</td>
-                                        {/* score */}
-                                        <td className="px-5 py-3.5">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-bold" style={{ color: scoreColor(c.avgScore) }}>{c.avgScore}</span>
-                                                <div className="w-14">
-                                                    <MiniBar pct={c.avgScore} color={scoreColor(c.avgScore)} />
+                                            </td>
+                                            {/* drive */}
+                                            <td className="px-5 py-3.5 text-white/50 whitespace-nowrap">{c.drive}</td>
+                                            {/* score */}
+                                            <td className="px-5 py-3.5">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-bold" style={{ color: scoreColor(c.avgScore) }}>{c.avgScore}</span>
+                                                    <div className="w-14">
+                                                        <MiniBar pct={c.avgScore} color={scoreColor(c.avgScore)} />
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        {/* completion */}
-                                        <td className="px-5 py-3.5">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-white/60">{c.completionRate}%</span>
-                                                <div className="w-14">
-                                                    <MiniBar pct={c.completionRate} color="#818cf8" />
+                                            </td>
+                                            {/* completion */}
+                                            <td className="px-5 py-3.5">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-white/60">{c.completionRate}%</span>
+                                                    <div className="w-14">
+                                                        <MiniBar pct={c.completionRate} color="#818cf8" />
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        {/* status */}
-                                        <td className="px-5 py-3.5">
-                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 w-fit ${st.cls}`}>
-                                                <span className="w-1.5 h-1.5 rounded-full" style={{ background: st.dot }} />
-                                                {c.status}
-                                            </span>
-                                        </td>
-                                        {/* date */}
-                                        <td className="px-5 py-3.5 text-white/35 whitespace-nowrap">{fmt(c.createdAt)}</td>
-                                        {/* 2fa */}
-                                        <td className="px-5 py-3.5">
-                                            {c.twoFactorEnabled
-                                                ? <Shield size={13} className="text-indigo-400" />
-                                                : <ShieldOff size={13} className="text-white/20" />}
-                                        </td>
-                                        {/* arrow */}
-                                        <td className="px-5 py-3.5">
-                                            <ChevronRight size={14} className="text-white/20 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all" />
-                                        </td>
-                                    </motion.tr>
-                                );
-                            })}
-                        </AnimatePresence>
-                    </tbody>
-                </table>
+                                            </td>
+                                            {/* status */}
+                                            <td className="px-5 py-3.5">
+                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold flex items-center gap-1 w-fit ${st.cls}`}>
+                                                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: st.dot }} />
+                                                    {c.status}
+                                                </span>
+                                            </td>
+                                            {/* date */}
+                                            <td className="px-5 py-3.5 text-white/35 whitespace-nowrap">{fmt(c.createdAt)}</td>
+                                            {/* 2fa */}
+                                            <td className="px-5 py-3.5">
+                                                {c.twoFactorEnabled
+                                                    ? <Shield size={13} className="text-indigo-400" />
+                                                    : <ShieldOff size={13} className="text-white/20" />}
+                                            </td>
+                                            {/* arrow */}
+                                            <td className="px-5 py-3.5">
+                                                <ChevronRight size={14} className="text-white/20 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all" />
+                                            </td>
+                                        </motion.tr>
+                                    );
+                                })}
+                            </AnimatePresence>
+                        </tbody>
+                    </table>
 
-                {/* table footer */}
-                <div className="px-5 py-3 border-t border-white/5 flex items-center justify-between">
-                    <p className="text-white/25 text-[11px]">Showing {filtered.length} of {CANDIDATES.length} candidates</p>
-                    <button className="text-indigo-400 text-[11px] hover:text-indigo-300 flex items-center gap-1 transition">
-                        Export CSV <Download size={11} />
-                    </button>
+                    {/* table footer */}
+                    <div className="px-5 py-3 border-t border-white/5 flex items-center justify-between">
+                        <p className="text-white/25 text-[11px]">Showing {filtered.length} of {CANDIDATES.length} candidates</p>
+                        <button className="text-indigo-400 text-[11px] hover:text-indigo-300 flex items-center gap-1 transition">
+                            Export CSV <Download size={11} />
+                        </button>
+                    </div>
                 </div>
-            </div>
 
-            {/* detail drawer */}
-            <CandidateDrawer candidate={selected} onClose={() => setSelected(null)} />
-        </div>
+                {/* detail drawer */}
+                <CandidateDrawer candidate={selected} onClose={() => setSelected(null)} />
+            </div>
+        </>
+        
     );
 };
 
