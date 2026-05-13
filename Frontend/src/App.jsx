@@ -23,11 +23,12 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import AdminDashboard from "./pages/Admin/AdminDashboard.jsx";
 import Interview from "./pages/InterView/Interview.jsx";
 import AdminDashboard2 from "./pages/Admin/AdminDashboard2.jsx";
-import CandidatesPage from "./components/admin/sidebar/Candidatespage.jsx";
+// import CandidatesPage from "./components/admin/sidebar/Candidatespage.jsx";
 import AdminLoginPage from "./pages/Admin/AdminLoginPage.jsx";
 import AdminDash from "./pages/AdminDash";
-import AdminDrive from "./components/admin/sidebar/AdminDrive.jsx";
+// import AdminDrive from "./components/admin/sidebar/AdminDrive.jsx";
 import UserProfileForm from "./pages/Registration/UserProfileForm.jsx";
+import AdminAssessments from "./components/admin/sidebar/AdminAssessments.jsx";
 
 
 function App() {
@@ -62,8 +63,9 @@ function App() {
       <Route path="/admindashboard" element={<AdminDash />} />
 
       <Route path="/admindash" element={<AdminDashboard2 />} />
-      <Route path="/candidate" element={<CandidatesPage />} />
-      <Route path="/admindrive" element={<AdminDrive />} />
+      <Route path="/admin/assessments" element={<AdminAssessments />} />
+      {/* <Route path="/candidate" element={<CandidatesPage />} /> */}
+      {/* <Route path="/admindrive" element={<AdminDrive />} /> */}
 
       <Route path="/interview" element={<Interview/>} />
       <Route path="/registration" element={<UserProfileForm />} />

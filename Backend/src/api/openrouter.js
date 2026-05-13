@@ -10,12 +10,11 @@ dotenv.config();
 const openrouter = axios.create({
   baseURL: "https://openrouter.ai/api/v1",
 
-  headers: {
-    Authorization:
-      `Bearer ${process.env.OPENROUTER_API_KEY}`,
+  timeout: 20000,
 
-    "Content-Type":
-      "application/json",
+  headers: {
+    Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+    "Content-Type": "application/json",
   },
 });
 
@@ -24,9 +23,7 @@ const openrouter = axios.create({
 // ============================
 
 const detectLanguage = (domain = "") => {
-
-  const text =
-    domain.toLowerCase();
+  const text = domain.toLowerCase();
 
   // Frontend
 
@@ -104,12 +101,12 @@ const detectLanguage = (domain = "") => {
     return "Go";
   }
 
-  // Fullstack / SWE fallback
+  // Backend / Fullstack
 
   if (
-    text.includes("software engineer") ||
+    text.includes("backend") ||
     text.includes("full stack") ||
-    text.includes("backend")
+    text.includes("software engineer")
   ) {
     return "JavaScript";
   }
@@ -124,11 +121,9 @@ const detectLanguage = (domain = "") => {
 // ============================
 
 const getStarterCode = (language) => {
-
   switch (language) {
 
     case "Java":
-
       return `class Solution {
     public static void main(String[] args) {
 
@@ -136,19 +131,16 @@ const getStarterCode = (language) => {
 }`;
 
     case "JavaScript":
-
       return `function solution() {
 
 }`;
 
     case "TypeScript":
-
       return `function solution(): void {
 
 }`;
 
     case "C++":
-
       return `#include <iostream>
 using namespace std;
 
@@ -158,7 +150,6 @@ int main() {
 }`;
 
     case "C#":
-
       return `using System;
 
 class Solution
@@ -170,7 +161,6 @@ class Solution
 }`;
 
     case "PHP":
-
       return `<?php
 
 function solution() {
@@ -180,7 +170,6 @@ function solution() {
 ?>`;
 
     case "Go":
-
       return `package main
 
 import "fmt"
@@ -190,7 +179,6 @@ func main() {
 }`;
 
     default:
-
       return `# Write your Python solution here`;
   }
 };
@@ -199,8 +187,9 @@ func main() {
 // REMOVE DUPLICATES
 // ============================
 
-const removeDuplicateQuestions =
-(questions = []) => {
+const removeDuplicateQuestions = (
+  questions = []
+) => {
 
   return questions.filter(
     (question, index, self) => {
@@ -225,6 +214,120 @@ const removeDuplicateQuestions =
 };
 
 // ============================
+// CREATE PROMPT
+// ============================
+
+const createPrompt = ({
+  domain,
+  difficulty,
+  type,
+  count,
+  language,
+  starterCode,
+}) => {
+
+  // CODING QUESTIONS
+
+  if (type === "CODING") {
+
+    return `
+Generate ${count} unique ${difficulty} coding interview questions for ${domain}.
+
+Rules:
+- Return ONLY valid JSON
+- No markdown
+- No explanations
+- Questions must be different
+- Use ${language}
+
+Format:
+[
+  {
+    "question": "",
+    "starterCode": "${starterCode}",
+    "language": "${language}"
+  }
+]
+`;
+  }
+
+  // MCQ QUESTIONS
+
+  return `
+Generate ${count} unique ${difficulty} MCQ interview questions for ${domain}.
+
+Rules:
+- Return ONLY valid JSON
+- No markdown
+- No explanations
+- Every question must have 4 options
+
+Format:
+[
+  {
+    "question": "",
+    "options": [],
+    "answer": ""
+  }
+]
+`;
+};
+
+// ============================
+// CALL AI
+// ============================
+
+const generateBatch = async ({
+  prompt,
+}) => {
+
+  const response =
+    await openrouter.post(
+      "/chat/completions",
+      {
+        model:
+        // "openrouter/auto",
+        // "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+        "inclusionai/ring-2.6-1t:free",
+
+        messages: [
+          {
+            role: "system",
+            content:
+              "Return ONLY valid JSON array.",
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+
+        temperature: 0.3,
+        top_p: 0.8,
+        max_tokens: 1200,
+      }
+    );
+
+  const raw =
+    response.data?.choices?.[0]
+      ?.message?.content || "[]";
+
+  try {
+
+    return JSON.parse(raw);
+
+  } catch (error) {
+
+    console.log(
+      "INVALID JSON:",
+      raw
+    );
+
+    return [];
+  }
+};
+
+// ============================
 // GENERATE QUESTIONS
 // ============================
 
@@ -236,133 +339,84 @@ async ({
   count,
 }) => {
 
-  const language =
-    detectLanguage(domain);
-
-  const starterCode =
-    getStarterCode(language);
-
-  let prompt = "";
-
-  // ============================
-  // CODING QUESTIONS
-  // ============================
-
-  if (type === "CODING") {
-
-    prompt = `
-Generate ${count} COMPLETELY DIFFERENT and NON-REPEATING ${difficulty} level coding interview questions for ${domain}.
-
-Requirements:
-- Every question must test a DIFFERENT concept
-- Avoid repeated topics
-- Avoid reworded duplicates
-- Use real-world interview style questions
-- Include algorithmic and practical coding challenges
-- Questions must be unique from each other
-
-Rules:
-- Return ONLY valid JSON
-- No markdown
-- No explanation
-- Generate coding questions in ${language}
-- Include starterCode
-- Include language field
-
-Format:
-[
-  {
-    "question": "",
-    "starterCode": "${starterCode}",
-    "language": "${language}"
-  }
-]
-`;
-
-  }
-
-  // ============================
-  // MCQ QUESTIONS
-  // ============================
-
-  else {
-
-    prompt = `
-Generate ${count} COMPLETELY DIFFERENT and NON-REPEATING ${difficulty} level MCQ interview questions for ${domain}.
-
-Requirements:
-- Every question must test a DIFFERENT concept
-- Avoid repeated topics
-- Avoid reworded duplicates
-- Questions must be industry-relevant
-
-Rules:
-- Return ONLY valid JSON
-- No markdown
-- No explanation
-- Each question must have exactly 4 options
-
-Format:
-[
-  {
-    "question": "",
-    "options": [],
-    "answer": ""
-  }
-]
-`;
-  }
-
   try {
 
-    const response =
-      await openrouter.post(
-        "/chat/completions",
-        {
-          model:
-            "openrouter/auto",
+    const language =
+      detectLanguage(domain);
 
-          messages: [
-            {
-              role: "user",
-              content: prompt,
-            },
-          ],
+    const starterCode =
+      getStarterCode(language);
 
-          temperature: 0.4,
-        }
-      );
+    // ============================
+    // SPLIT INTO BATCHES
+    // ============================
 
-    const rawResult =
-      response.data?.choices?.[0]
-        ?.message?.content || "[]";
+    const batchSize = 2;
 
-    let parsedQuestions = [];
+    const totalBatches =
+      Math.ceil(count / batchSize);
 
-    try {
+    const requests = [];
 
-      parsedQuestions =
-        JSON.parse(rawResult);
+    for (
+      let i = 0;
+      i < totalBatches;
+      i++
+    ) {
 
-    } catch (error) {
+      const remaining =
+        count - i * batchSize;
 
-      console.log(
-        "Invalid JSON:",
-        rawResult
-      );
+      const currentBatchSize =
+        Math.min(
+          batchSize,
+          remaining
+        );
 
-      throw new Error(
-        "AI returned invalid JSON"
+      const prompt =
+        createPrompt({
+          domain,
+          difficulty,
+          type,
+          count:
+            currentBatchSize,
+          language,
+          starterCode,
+        });
+
+      requests.push(
+        generateBatch({
+          prompt,
+        })
       );
     }
 
+    // ============================
+    // PARALLEL EXECUTION
+    // ============================
+
+    const results =
+      await Promise.all(requests);
+
+    // ============================
+    // FLATTEN ARRAY
+    // ============================
+
+    const questions =
+      results.flat();
+
+    // ============================
+    // REMOVE DUPLICATES
+    // ============================
+
     const uniqueQuestions =
       removeDuplicateQuestions(
-        parsedQuestions
+        questions
       );
 
-    return JSON.stringify(
-      uniqueQuestions
+    return uniqueQuestions.slice(
+      0,
+      count
     );
 
   } catch (error) {

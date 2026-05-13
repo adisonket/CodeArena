@@ -29,11 +29,6 @@ const navItems = [
         label: "Drives",
     },
     {
-        id: "results",
-        Icon: Trophy,
-        label: "Results",
-    },
-    {
         id: "assessments",
         Icon: ClipboardList,
         label: "Assessments",
@@ -42,6 +37,11 @@ const navItems = [
         id: "interviews",
         Icon: MonitorPlay,
         label: "Interviews",
+    },
+    {
+        id: "results",
+        Icon: Trophy,
+        label: "Results",
     },
     {
         id: "analytics",

@@ -1,6 +1,8 @@
-import { generateQuestions } from "../api/openrouter.js";
+import { generateQuestions }
+from "../api/openrouter.js";
 
-export const generateQuestionsController =
+export const
+generateQuestionsController =
 async (req, res) => {
 
   try {
@@ -11,6 +13,10 @@ async (req, res) => {
       type,
       count,
     } = req.body;
+
+    // ============================
+    // VALIDATION
+    // ============================
 
     if (
       !domain ||
@@ -26,39 +32,27 @@ async (req, res) => {
       });
     }
 
-    const result =
+    // ============================
+    // GENERATE QUESTIONS
+    // ============================
+
+    const questions =
       await generateQuestions({
         domain,
         difficulty,
         type,
-        count,
+        count:
+          Number(count),
       });
-
-    let parsedQuestions;
-
-    try {
-
-      parsedQuestions =
-        JSON.parse(result);
-
-    } catch (error) {
-
-      return res.status(500).json({
-        success: false,
-        message:
-          "AI returned invalid JSON",
-        raw: result,
-      });
-    }
 
     return res.status(200).json({
       success: true,
-      questions: parsedQuestions,
+      questions,
     });
 
   } catch (error) {
 
-    console.error(
+    console.log(
       error.response?.data ||
       error.message
     );

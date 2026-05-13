@@ -13,6 +13,7 @@ import SystemHealth from "../../components/admin/dashboard/SystemHealth";
 
 import CandidatesPage from "../../components/admin/sidebar/Candidatespage";
 import AdminDrive from "../../components/admin/sidebar/AdminDrive";
+import AdminAssessments from "../../components/admin/sidebar/AdminAssessments";
 
 
 const AdminDashboard2 = () => {
@@ -91,6 +92,10 @@ const AdminDashboard2 = () => {
 
                         {activeTab === "drives" && (
                             <AdminDrive />
+                        )}
+
+                        {activeTab === "assessments" && (
+                            <AdminAssessments />
                         )}
 
                     </main>
