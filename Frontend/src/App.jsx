@@ -29,6 +29,7 @@ import AdminDash from "./pages/AdminDash";
 // import AdminDrive from "./components/admin/sidebar/AdminDrive.jsx";
 import UserProfileForm from "./pages/Registration/UserProfileForm.jsx";
 import AdminAssessments from "./components/admin/sidebar/AdminAssessments.jsx";
+import AdminInterview from "./components/admin/sidebar/AdminInterview.jsx";
 
 
 function App() {
@@ -64,6 +65,7 @@ function App() {
 
       <Route path="/admindash" element={<AdminDashboard2 />} />
       <Route path="/admin/assessments" element={<AdminAssessments />} />
+      <Route path="/admin/interview" element={<AdminInterview />} />
       {/* <Route path="/candidate" element={<CandidatesPage />} /> */}
       {/* <Route path="/admindrive" element={<AdminDrive />} /> */}
       <Route path="/admindrive" element={<AdminDrive />} />
