@@ -286,9 +286,9 @@ const generateBatch = async ({
       "/chat/completions",
       {
         model:
-        // "openrouter/auto",
+        "openrouter/auto",
         // "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-        "inclusionai/ring-2.6-1t:free",
+        // "inclusionai/ring-2.6-1t:free",
 
         messages: [
           {

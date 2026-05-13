@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import * as faceapi from "face-api.js";
+import { FaceDetector, FilesetResolver } from "@mediapipe/tasks-vision";
 import SoftBackdrop from "../../components/SoftBackdrop";
 import LenisScroll from "../../components/lenis";
 import { useAuth } from "../../context/AuthContext";
@@ -221,6 +221,7 @@ const Assessment = () => {
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const faceDetectorRef = useRef(null);
   const [status, setStatus] = useState("idle");
   const [cameraError, setCameraError] = useState(null);
   const [isModelsLoaded, setIsModelsLoaded] = useState(false);
@@ -420,14 +421,22 @@ const Assessment = () => {
   useEffect(() => {
     const loadModels = async () => {
       try {
-        const MODEL_URL = "/models";
-        await Promise.all([
-          faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-          faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-        ]);
+        const vision = await FilesetResolver.forVisionTasks(
+          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm",
+        );
+        const detector = await FaceDetector.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite`,
+            delegate: "CPU",
+          },
+          runningMode: "VIDEO",
+          minDetectionConfidence: 0.5,
+        });
+
+        faceDetectorRef.current = detector;
         setIsModelsLoaded(true);
       } catch (err) {
-        console.error("Failed to load AI models.", err);
+        console.error("Failed to load MediaPipe models.", err);
       }
     };
     loadModels();
@@ -524,20 +533,29 @@ const Assessment = () => {
           return;
         }
 
-        const detections = await faceapi
-          .detectAllFaces(
+        let faceCount = 0;
+        let isMasked = false;
+
+        if (faceDetectorRef.current) {
+          const results = faceDetectorRef.current.detectForVideo(
             video,
-            new faceapi.TinyFaceDetectorOptions({
-              inputSize: 224,
-              scoreThreshold: 0.2,
-            }),
-          )
-          .withFaceLandmarks();
+            performance.now(),
+          );
+          faceCount = results.detections.length;
 
-        if (detections.length === 0) {
+          if (faceCount === 1) {
+            const face = results.detections[0];
+            const score = face.categories[0].score;
+
+            if (score < 0.82) {
+              isMasked = true;
+            }
+          }
+        }
+
+        if (faceCount === 0) {
           missingFaceFrames.current += 1;
-
-          const allowedMissingFrames = isCurrentCoding ? 7 : 2;
+          const allowedMissingFrames = isCurrentCoding ? 3 : 2;
 
           if (missingFaceFrames.current >= allowedMissingFrames) {
             if (!isCooldown) {
@@ -555,7 +573,7 @@ const Assessment = () => {
               }
             }
           }
-        } else if (detections.length > 1) {
+        } else if (faceCount > 1) {
           missingFaceFrames.current = 0;
           if (!isCooldown) {
             violations.current.multiPerson += 1;
@@ -570,8 +588,29 @@ const Assessment = () => {
               );
             }
           }
+        } else if (isMasked) {
+          missingFaceFrames.current = 0;
+          maskFrames.current += 1;
+
+          if (maskFrames.current >= 3) {
+            if (!isCooldown) {
+              violations.current.mask += 1;
+              lastViolationTime.current = Date.now();
+              maskFrames.current = 0;
+              if (violations.current.mask >= 3) {
+                terminateSession("Face covering or mask detected repeatedly.");
+              } else {
+                triggerAlert(
+                  "Security Violation",
+                  `Warning ${violations.current.mask}/2: Face covering or mask detected! Please ensure your full face is visible.`,
+                  "danger",
+                );
+              }
+            }
+          }
         } else {
           missingFaceFrames.current = 0;
+          maskFrames.current = 0;
         }
       } catch (err) {
         console.error("Analysis Error:", err);
@@ -583,9 +622,8 @@ const Assessment = () => {
     const loop = async () => {
       if (!isRunning) return;
       await performAnalysis();
-      analysisTimeoutRef.current = setTimeout(loop, 1500);
+      analysisTimeoutRef.current = setTimeout(loop, 500);
     };
-
     loop();
 
     return () => {
