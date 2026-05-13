@@ -69,6 +69,7 @@ const userSchema = new mongoose.Schema(
     resumeOriginalName: { type: String, default: "" },
     education: [
       {
+        _id: { type: mongoose.Schema.Types.ObjectId, default: () => new mongoose.Types.ObjectId() },
         degree: { type: String, default: "" },
         institution: { type: String, default: "" },
         university: { type: String, default: "" },
@@ -77,6 +78,7 @@ const userSchema = new mongoose.Schema(
         current: { type: Boolean, default: false },
         docs: [
           {
+            _id: { type: mongoose.Schema.Types.ObjectId, default: () => new mongoose.Types.ObjectId() },
             name: { type: String },
             path: { type: String },
             size: { type: String },

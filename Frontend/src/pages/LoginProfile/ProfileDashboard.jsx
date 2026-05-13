@@ -291,12 +291,12 @@ function EduCard({ edu, editing, onFieldChange, onDocUpload, onRemoveDoc, upload
       )}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 14px" }}>
         <div style={{ gridColumn: "1 / -1" }}>
-          <EditableInput label="Degree / Program" value={edu.degree} editing={editing} onChange={v => onFieldChange(edu._id || edu.tempId, "degree", v)} />
+          <EditableInput label="Degree / Program" value={edu.degree} editing={editing} onChange={v => onFieldChange(edu._id ? String(edu._id) : edu.tempId, "degree", v)} />
         </div>
-        <EditableInput label="Institution" value={edu.institution} editing={editing} onChange={v => onFieldChange(edu._id || edu.tempId, "institution", v)} />
-        <EditableInput label="University" value={edu.university} editing={editing} onChange={v => onFieldChange(edu._id || edu.tempId, "university", v)} />
-        <EditableInput label="Year" value={edu.year} editing={editing} onChange={v => onFieldChange(edu._id || edu.tempId, "year", v)} />
-        <EditableInput label="CGPA / %" value={edu.cgpa} editing={editing} onChange={v => onFieldChange(edu._id || edu.tempId, "cgpa", v)} />
+        <EditableInput label="Institution" value={edu.institution} editing={editing} onChange={v => onFieldChange(edu._id ? String(edu._id) : edu.tempId, "institution", v)} />
+        <EditableInput label="University" value={edu.university} editing={editing} onChange={v => onFieldChange(edu._id ? String(edu._id) : edu.tempId, "university", v)} />
+        <EditableInput label="Year" value={edu.year} editing={editing} onChange={v => onFieldChange(edu._id ? String(edu._id) : edu.tempId, "year", v)} />
+        <EditableInput label="CGPA / %" value={edu.cgpa} editing={editing} onChange={v => onFieldChange(edu._id ? String(edu._id) : edu.tempId, "cgpa", v)} />
       </div>
 
       <div style={{ borderTop: `1px solid ${COLORS.midPurple}44`, marginTop: 14, paddingTop: 14 }}>
@@ -309,17 +309,24 @@ function EduCard({ edu, editing, onFieldChange, onDocUpload, onRemoveDoc, upload
             <span style={{ color: COLORS.green, fontFamily: "'Space Mono',monospace", fontSize: 11, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.name}</span>
             <span style={{ fontSize: 10, color: COLORS.grayMuted, flexShrink: 0 }}>{d.size}</span>
             {editing && (
-              <button onClick={() => onRemoveDoc(edu._id || edu.tempId, d._id, i)} style={{ background: "none", border: "none", color: "#f87171", cursor: "pointer", fontSize: 12, padding: 0, flexShrink: 0 }}>✕</button>
+              <button onClick={() => onRemoveDoc(edu._id ? String(edu._id) : edu.tempId, d._id, i)} style={{ background: "none", border: "none", color: "#f87171", cursor: "pointer", fontSize: 12, padding: 0, flexShrink: 0 }}>✕</button>
             )}
           </div>
         ))}
-        <label style={{ display: "flex", alignItems: "center", gap: 8, border: `2px dashed ${editing ? COLORS.accent + "66" : COLORS.midPurple}`, borderRadius: 10, padding: "9px 14px", cursor: "pointer", fontSize: 12, color: COLORS.grayMuted, marginTop: 4, transition: "border 0.2s", opacity: uploadingDocId === (edu._id || edu.tempId) ? 0.6 : 1 }}>
-          {uploadingDocId === (edu._id || edu.tempId)
-            ? <><Spinner /><span style={{ color: COLORS.accent, fontFamily: "'Space Mono',monospace", fontSize: 11 }}>Uploading...</span></>
-            : <><span style={{ color: COLORS.accent, fontFamily: "'Space Mono',monospace", fontSize: 11 }}>↑ Upload PDF</span><span style={{ marginLeft: "auto", fontSize: 10 }}>PDF only</span></>
-          }
-          <input type="file" style={{ display: "none" }} accept=".pdf" onChange={e => onDocUpload(edu._id || edu.tempId, e)} />
-        </label>
+        {editing && edu.docs.length === 0 && (
+          <label style={{ display: "flex", alignItems: "center", gap: 8, border: `2px dashed ${COLORS.accent}66`, borderRadius: 10, padding: "9px 14px", cursor: uploadingDocId === edu._id ? String(edu._id) : edu.tempId ? "not-allowed" : "pointer", fontSize: 12, color: COLORS.grayMuted, marginTop: 4, transition: "border 0.2s", opacity: uploadingDocId === (edu._id ? String(edu._id) : edu.tempId) ? 0.6 : 1 }}>
+            {uploadingDocId === edu._id ? String(edu._id) : edu.tempId
+              ? <><Spinner /><span style={{ color: COLORS.accent, fontFamily: "'Space Mono',monospace", fontSize: 11 }}>Uploading...</span></>
+              : <><span style={{ color: COLORS.accent, fontFamily: "'Space Mono',monospace", fontSize: 11 }}>↑ Upload PDF</span><span style={{ marginLeft: "auto", fontSize: 10 }}>PDF only</span></>
+            }
+            <input type="file" style={{ display: "none" }} accept=".pdf" onChange={e => onDocUpload(edu._id ? String(edu._id) : edu.tempId, e)} disabled={uploadingDocId === (edu._id ? String(edu._id) : edu.tempId)} />
+          </label>
+        )}
+        {editing && edu.docs.length >= 1 && (
+          <p style={{ fontSize: 11, color: COLORS.grayMuted, fontFamily: "'Space Mono',monospace", marginTop: 8, textAlign: "center" }}>
+            Maximum 1 document per qualification. Remove existing to replace.
+          </p>
+        )}
       </div>
     </div>
   );
@@ -337,7 +344,7 @@ function EducationSection({ initialData, onSaved }) {
   }, [initialData]);
 
   const handleFieldChange = (id, field, val) => {
-    setEduList(prev => prev.map(ed => (ed._id === id || ed.tempId === id) ? { ...ed, [field]: val } : ed));
+    setEduList(prev => prev.map(ed => (String(ed._id) === id || ed.tempId === id) ? { ...ed, [field]: val } : ed));
   };
 
   // For new (unsaved) edu entries: upload doc locally, will be saved on Save
@@ -345,8 +352,12 @@ function EducationSection({ initialData, onSaved }) {
   const handleDocUpload = async (id, e) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    const edu = eduList.find(ed => ed._id === id || ed.tempId === id);
+    e.target.value = "";
+    const edu = eduList.find(ed => String(ed._id) === id || ed.tempId === id);
+    console.log("id received:", id);
+    console.log("eduList entries:", eduList.map(ed => ({ _id: String(ed._id), tempId: ed.tempId })));
+    console.log("found edu:", edu);
+    if (!edu) return; // ← prevents the crash
 
     // If this edu entry exists in DB (has a real _id), upload immediately
     if (edu._id) {
@@ -361,7 +372,7 @@ function EducationSection({ initialData, onSaved }) {
         });
         const json = await res.json();
         if (!json.success) throw new Error(json.message);
-        setEduList(prev => prev.map(ed => ed._id === id ? { ...ed, docs: [...ed.docs, json.doc] } : ed));
+        setEduList(prev => prev.map(ed => String(ed._id) === id ? { ...ed, docs: [...ed.docs, json.doc] } : ed));
         setToast({ msg: "Document uploaded!", type: "success" });
       } catch (err) {
         setToast({ msg: err.message || "Upload failed", type: "error" });
@@ -376,7 +387,7 @@ function EducationSection({ initialData, onSaved }) {
   };
 
   const handleRemoveDoc = async (eduId, docId, docIndex) => {
-    const edu = eduList.find(ed => ed._id === eduId || ed.tempId === eduId);
+    const edu = eduList.find(ed => String(ed._id) === eduId || ed.tempId === eduId);
 
     // If the doc is persisted in DB
     if (edu._id && docId) {
@@ -388,7 +399,7 @@ function EducationSection({ initialData, onSaved }) {
       } catch (err) { /* silent */ }
     }
     setEduList(prev => prev.map(ed =>
-      (ed._id === eduId || ed.tempId === eduId)
+      (String(ed._id) === eduId || ed.tempId === eduId)
         ? { ...ed, docs: ed.docs.filter((_, i) => i !== docIndex) }
         : ed
     ));

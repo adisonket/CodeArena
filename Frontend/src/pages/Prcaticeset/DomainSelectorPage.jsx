@@ -3,7 +3,15 @@ import { useNavigate } from "react-router-dom";
 import SoftBackdropNew from "../../components/SoftBackdropNew";
 import LenisScroll from "../../components/lenis";
 import Header from "../../components/Header";
-
+import {
+  Circle,
+  AlertTriangle,
+  Search,
+  Sparkles,
+  ArrowRight,
+  Hourglass,
+  X,
+} from "lucide-react";
 
 const API_URL = "http://localhost:4000/api/admin";
 
@@ -34,7 +42,8 @@ const glass = {
     WebkitBackdropFilter: "blur(20px)",
     border: "1px solid rgba(255, 255, 255, 0.1)",
     borderRadius: "24px",
-    boxShadow: "0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)",
+    boxShadow:
+      "0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)",
   },
 };
 
@@ -43,7 +52,7 @@ const DIFFICULTIES = [
   {
     id: "easy",
     label: "Easy",
-    emoji: "🟢",
+    icon: <Circle size={18} fill="#22C55E" stroke="#22C55E" />,
     description: "Fundamental concepts, definitions & basic problem-solving",
     color: "#22C55E",
     glow: "rgba(34,197,94,0.25)",
@@ -53,8 +62,9 @@ const DIFFICULTIES = [
   {
     id: "medium",
     label: "Medium",
-    emoji: "🟡",
-    description: "Applied knowledge, common interview patterns & trade-offs",
+    icon: <Circle size={18} fill="#F59E0B" stroke="#F59E0B" />,
+    description:
+      "Applied knowledge, common interview patterns & trade-offs",
     color: "#F59E0B",
     glow: "rgba(245,158,11,0.25)",
     bg: "rgba(245,158,11,0.08)",
@@ -63,8 +73,9 @@ const DIFFICULTIES = [
   {
     id: "hard",
     label: "Hard",
-    emoji: "🔴",
-    description: "Advanced topics, edge cases & system-design level depth",
+    icon: <Circle size={18} fill="#EF4444" stroke="#EF4444" />,
+    description:
+      "Advanced topics, edge cases & system-design level depth",
     color: "#EF4444",
     glow: "rgba(239,68,68,0.25)",
     bg: "rgba(239,68,68,0.08)",
@@ -112,7 +123,8 @@ function DifficultyPopup({ domain, category, onClose, onConfirm }) {
           padding: "32px",
           maxWidth: "480px",
           width: "100%",
-          boxShadow: "0 24px 80px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.06)",
+          boxShadow:
+            "0 24px 80px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.06)",
           animation: "slideUp 0.22s cubic-bezier(0.34,1.56,0.64,1)",
         }}
       >
@@ -146,7 +158,7 @@ function DifficultyPopup({ domain, category, onClose, onConfirm }) {
             e.currentTarget.style.color = "rgba(255,255,255,0.5)";
           }}
         >
-          ✕
+          <X size={16} />
         </button>
 
         {/* Domain info */}
@@ -179,7 +191,13 @@ function DifficultyPopup({ domain, category, onClose, onConfirm }) {
           >
             {domain}
           </h2>
-          <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.4)", margin: 0 }}>
+          <p
+            style={{
+              fontSize: "13px",
+              color: "rgba(255,255,255,0.4)",
+              margin: 0,
+            }}
+          >
             Choose your difficulty level to begin the practice set.
           </p>
         </div>
@@ -194,7 +212,14 @@ function DifficultyPopup({ domain, category, onClose, onConfirm }) {
         />
 
         {/* Difficulty options */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "24px" }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "10px",
+            marginBottom: "24px",
+          }}
+        >
           {DIFFICULTIES.map((diff) => {
             const isSelected = selected === diff.id;
             const isHovered = hoveredId === diff.id;
@@ -227,8 +252,19 @@ function DifficultyPopup({ domain, category, onClose, onConfirm }) {
                   outline: "none",
                 }}
               >
-                {/* Emoji */}
-                <span style={{ fontSize: "22px", lineHeight: 1, flexShrink: 0 }}>{diff.emoji}</span>
+                {/* Icon */}
+                <span
+                  style={{
+                    fontSize: "22px",
+                    lineHeight: 1,
+                    flexShrink: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {diff.icon}
+                </span>
 
                 {/* Text */}
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -243,7 +279,13 @@ function DifficultyPopup({ domain, category, onClose, onConfirm }) {
                   >
                     {diff.label}
                   </div>
-                  <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.35)", lineHeight: 1.4 }}>
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      color: "rgba(255,255,255,0.35)",
+                      lineHeight: 1.4,
+                    }}
+                  >
                     {diff.description}
                   </div>
                 </div>
@@ -254,7 +296,9 @@ function DifficultyPopup({ domain, category, onClose, onConfirm }) {
                     width: "18px",
                     height: "18px",
                     borderRadius: "50%",
-                    border: isSelected ? `2px solid ${diff.color}` : "2px solid rgba(255,255,255,0.15)",
+                    border: isSelected
+                      ? `2px solid ${diff.color}`
+                      : "2px solid rgba(255,255,255,0.15)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -296,7 +340,9 @@ function DifficultyPopup({ domain, category, onClose, onConfirm }) {
             fontWeight: 700,
             cursor: selected ? "pointer" : "not-allowed",
             transition: "all 0.2s ease",
-            boxShadow: selected ? "0 8px 24px rgba(108,99,255,0.35)" : "none",
+            boxShadow: selected
+              ? "0 8px 24px rgba(108,99,255,0.35)"
+              : "none",
             letterSpacing: "0.02em",
           }}
           onMouseEnter={(e) => {
@@ -307,7 +353,9 @@ function DifficultyPopup({ domain, category, onClose, onConfirm }) {
           }}
         >
           {selected
-            ? `Start ${DIFFICULTIES.find((d) => d.id === selected)?.label} Practice →`
+            ? `Start ${
+                DIFFICULTIES.find((d) => d.id === selected)?.label
+              } Practice →`
             : "Select a difficulty to continue"}
         </button>
       </div>
@@ -383,21 +431,34 @@ function DomainCard({ domain, category, active, onClick }) {
         <div
           style={{
             flexShrink: 0,
-            background: hovered || active ? "#6C63FF" : "rgba(108, 99, 255, 0.15)",
+            background:
+              hovered || active
+                ? "#6C63FF"
+                : "rgba(108, 99, 255, 0.15)",
             border: "1px solid rgba(108, 99, 255, 0.3)",
             borderRadius: "10px",
             padding: "6px 10px",
             fontSize: "13px",
             color: hovered || active ? "#fff" : "#6C63FF",
             transition: "all 0.2s",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          →
+          <ArrowRight size={14} />
         </div>
       </div>
 
       {/* footer */}
-      <div style={{ marginTop: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+      <div
+        style={{
+          marginTop: "16px",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+        }}
+      >
         <span
           style={{
             width: "7px",
@@ -408,7 +469,14 @@ function DomainCard({ domain, category, active, onClick }) {
             display: "inline-block",
           }}
         />
-        <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.35)" }}>Open practice set</span>
+        <span
+          style={{
+            fontSize: "11px",
+            color: "rgba(255,255,255,0.35)",
+          }}
+        >
+          Open practice set
+        </span>
       </div>
     </button>
   );
@@ -458,7 +526,9 @@ export default function DomainSelectorPage() {
     return groups
       .map((g) => ({
         ...g,
-        domains: (g.domains || []).filter((d) => d.toLowerCase().includes(q)),
+        domains: (g.domains || []).filter((d) =>
+          d.toLowerCase().includes(q)
+        ),
       }))
       .filter((g) => g.domains.length > 0);
   }, [search, groups]);
@@ -473,10 +543,7 @@ export default function DomainSelectorPage() {
     (difficulty) => {
       if (!popup) return;
       setPopup(null);
-      navigate(
-        // `/practice/${encodeURIComponent(popup.domain)}?difficulty=${difficulty}`
-        `/practiceset`
-      );
+      navigate(`/practiceset`);
     },
     [popup, navigate]
   );
@@ -499,10 +566,21 @@ export default function DomainSelectorPage() {
       )}
 
       <div className="relative z-10 min-h-screen text-white bg-transparent">
-        <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "32px 24px" }}>
-
+        <div
+          style={{
+            maxWidth: "1280px",
+            margin: "0 auto",
+            padding: "32px 24px",
+          }}
+        >
           {/* ── HEADER CARD ── */}
-          <div style={{ ...glass.headerCard, padding: "32px", marginBottom: "32px" }}>
+          <div
+            style={{
+              ...glass.headerCard,
+              padding: "32px",
+              marginBottom: "32px",
+            }}
+          >
             {/* top row */}
             <div
               style={{
@@ -526,7 +604,7 @@ export default function DomainSelectorPage() {
                   color: "rgba(255,255,255,0.85)",
                 }}
               >
-                <span>✦</span>
+                <Sparkles size={14} color="#a89eff" />
                 Interview Practice Domain Selector
               </div>
 
@@ -549,7 +627,11 @@ export default function DomainSelectorPage() {
                     height: "7px",
                     borderRadius: "50%",
                     background: loadingDomains ? "#F59E0B" : "#22C55E",
-                    boxShadow: `0 0 6px ${loadingDomains ? "rgba(245,158,11,0.5)" : "rgba(34,197,94,0.5)"}`,
+                    boxShadow: `0 0 6px ${
+                      loadingDomains
+                        ? "rgba(245,158,11,0.5)"
+                        : "rgba(34,197,94,0.5)"
+                    }`,
                     display: "inline-block",
                   }}
                 />
@@ -583,7 +665,8 @@ export default function DomainSelectorPage() {
                   Choose a domain,{" "}
                   <span
                     style={{
-                      background: "linear-gradient(135deg, #a89eff 0%, #6C63FF 100%)",
+                      background:
+                        "linear-gradient(135deg, #a89eff 0%, #6C63FF 100%)",
                       WebkitBackdropFilter: "text",
                       WebkitTextFillColor: "transparent",
                       backgroundClip: "text",
@@ -639,9 +722,11 @@ export default function DomainSelectorPage() {
                       transform: "translateY(-50%)",
                       color: "rgba(255,255,255,0.25)",
                       pointerEvents: "none",
+                      display: "flex",
+                      alignItems: "center",
                     }}
                   >
-                    🔍
+                    <Search size={14} />
                   </span>
                   <input
                     value={search}
@@ -661,7 +746,8 @@ export default function DomainSelectorPage() {
                     }}
                     onFocus={(e) => {
                       e.target.style.borderColor = "rgba(108,99,255,0.5)";
-                      e.target.style.boxShadow = "0 0 0 3px rgba(108,99,255,0.12)";
+                      e.target.style.boxShadow =
+                        "0 0 0 3px rgba(108,99,255,0.12)";
                     }}
                     onBlur={(e) => {
                       e.target.style.borderColor = "rgba(255,255,255,0.08)";
@@ -683,8 +769,19 @@ export default function DomainSelectorPage() {
                 color: "rgba(255,255,255,0.4)",
               }}
             >
-              <div style={{ fontSize: "32px", marginBottom: "12px" }}>⏳</div>
-              <p style={{ margin: 0, fontSize: "14px" }}>Loading domains from server…</p>
+              <div
+                style={{
+                  fontSize: "32px",
+                  marginBottom: "12px",
+                  display: "flex",
+                  justifyContent: "center",
+                }}
+              >
+                <Hourglass size={32} color="rgba(255,255,255,0.4)" />
+              </div>
+              <p style={{ margin: 0, fontSize: "14px" }}>
+                Loading domains from server…
+              </p>
             </div>
           )}
 
@@ -698,32 +795,63 @@ export default function DomainSelectorPage() {
                 borderColor: "rgba(239,68,68,0.2)",
               }}
             >
-              <div style={{ fontSize: "32px", marginBottom: "12px" }}>⚠️</div>
+              <div
+                style={{
+                  fontSize: "32px",
+                  marginBottom: "12px",
+                  display: "flex",
+                  justifyContent: "center",
+                }}
+              >
+                <AlertTriangle size={32} color="rgba(239,68,68,0.8)" />
+              </div>
               <p style={{ margin: 0, fontSize: "14px" }}>{fetchError}</p>
             </div>
           )}
 
-          {!loadingDomains && !fetchError && filteredGroups.length === 0 && (
-            <div
-              style={{
-                ...glass.section,
-                textAlign: "center",
-                padding: "60px 24px",
-                color: "rgba(255,255,255,0.35)",
-              }}
-            >
-              <div style={{ fontSize: "32px", marginBottom: "12px" }}>🔍</div>
-              <p style={{ margin: 0, fontSize: "14px" }}>
-                {search ? `No domains match "${search}"` : "No domains added yet. Ask an admin to add some!"}
-              </p>
-            </div>
-          )}
+          {!loadingDomains &&
+            !fetchError &&
+            filteredGroups.length === 0 && (
+              <div
+                style={{
+                  ...glass.section,
+                  textAlign: "center",
+                  padding: "60px 24px",
+                  color: "rgba(255,255,255,0.35)",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "32px",
+                    marginBottom: "12px",
+                    display: "flex",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Search size={32} color="rgba(255,255,255,0.35)" />
+                </div>
+                <p style={{ margin: 0, fontSize: "14px" }}>
+                  {search
+                    ? `No domains match "${search}"`
+                    : "No domains added yet. Ask an admin to add some!"}
+                </p>
+              </div>
+            )}
 
           {/* ── CATEGORY SECTIONS ── */}
           {!loadingDomains && !fetchError && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "20px",
+              }}
+            >
               {filteredGroups.map((group, idx) => (
-                <section key={group._id || group.category} style={glass.section}>
+                <section
+                  key={group._id || group.category}
+                  style={glass.section}
+                >
                   {/* section header */}
                   <div
                     style={{
@@ -758,9 +886,16 @@ export default function DomainSelectorPage() {
                       >
                         {group.category}
                       </h2>
-                      <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", margin: 0 }}>
+                      <p
+                        style={{
+                          fontSize: "11px",
+                          color: "rgba(255,255,255,0.3)",
+                          margin: 0,
+                        }}
+                      >
                         {group.domains?.length || 0} topic
-                        {(group.domains?.length || 0) !== 1 ? "s" : ""} available
+                        {(group.domains?.length || 0) !== 1 ? "s" : ""}{" "}
+                        available
                       </p>
                     </div>
                     <span
@@ -783,7 +918,8 @@ export default function DomainSelectorPage() {
                     style={{
                       display: "grid",
                       gap: "14px",
-                      gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                      gridTemplateColumns:
+                        "repeat(auto-fill, minmax(220px, 1fr))",
                     }}
                   >
                     {(group.domains || []).map((domain) => (
@@ -792,7 +928,9 @@ export default function DomainSelectorPage() {
                         domain={domain}
                         category={group.category}
                         active={false}
-                        onClick={() => handleCardClick(domain, group.category)}
+                        onClick={() =>
+                          handleCardClick(domain, group.category)
+                        }
                       />
                     ))}
                   </div>
