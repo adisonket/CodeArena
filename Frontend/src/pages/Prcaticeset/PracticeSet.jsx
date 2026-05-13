@@ -3,17 +3,15 @@ import QuestionsPanel from '../../components/QuestionsPanel';
 import CodeEditor from '../../components/CodeEditor';
 import Header from "../../components/Header";
 
-
 const PracticeSet = () => {
-
   const [currentQuestion, setCurrentQuestion] = useState(null);
 
   return (
-    <>
+    <div className="h-screen flex flex-col overflow-hidden">
       <Header />
 
       <div
-        className="h-screen grid grid-cols-1 lg:grid-cols-[560px_minmax(0,1fr)] overflow-hidden text-white font-['Inter'] antialiased"
+        className="flex-1 grid grid-cols-1 lg:grid-cols-[560px_minmax(0,1fr)] overflow-hidden text-white font-['Inter'] antialiased"
         style={{
           background: `
             radial-gradient(circle at top right, rgba(108,99,255,0.08), transparent 28%),
@@ -21,15 +19,10 @@ const PracticeSet = () => {
           `
         }}
       >
-
         <QuestionsPanel onQuestionChange={setCurrentQuestion} />
-
-        <CodeEditor
-          currentQuestion={currentQuestion}
-        />
-
+        <CodeEditor currentQuestion={currentQuestion} />
       </div>
-    </>
+    </div>
   );
 };
 
