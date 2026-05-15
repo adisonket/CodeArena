@@ -397,8 +397,8 @@ export default function UserpanForm() {
                     onChange={handleChange}
                     className="w-full h-14 bg-violet-500/30 border border-violet-500/20 rounded-xl px-4 text-white outline-none"
                   >
-                    <option value="">Select Nationality</option>
-                    <option value="India">Indian</option>
+                    <option value="" className="bg-black text-white">Select Nationality</option>
+                    <option value="India" className="bg-black text-white">Indian</option>
                   </select>
                 </div>
 
@@ -415,10 +415,10 @@ export default function UserpanForm() {
                       onChange={handleChange}
                       className="w-full h-14 bg-violet-500/30 border border-violet-500/20 rounded-xl px-4 text-white outline-none"
                     >
-                      <option value="">Select State</option>
+                      <option value="" className="bg-black text-white">Select State</option>
 
                       {Object.keys(indianStates).map((state) => (
-                        <option key={state} value={state}>
+                        <option key={state} value={state} className="bg-black text-white">
                           {state}
                         </option>
                       ))}
@@ -439,10 +439,10 @@ export default function UserpanForm() {
                       onChange={handleChange}
                       className="w-full h-14 bg-violet-500/30 border border-violet-500/20 rounded-xl px-4 text-white outline-none"
                     >
-                      <option value="">Select District</option>
+                      <option value="" className="bg-black text-white">Select District</option>
 
                       {indianStates[formData.state].map((district) => (
-                        <option key={district} value={district}>
+                        <option key={district} value={district} className="bg-black text-white">
                           {district}
                         </option>
                       ))}
@@ -473,7 +473,7 @@ export default function UserpanForm() {
                     <button
                       type="button"
                       onClick={detectLocation}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-violet-400 hover:text-violet-300"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-violet-100 hover:text-violet-300"
                     >
                       <LocateFixed size={20} />
                     </button>
