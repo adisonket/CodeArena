@@ -184,3 +184,21 @@ body,
 .card-glow {
   animation: borderGlow 4s ease-in-out infinite;
 }
+
+
+
+.dark-input {
+    background: rgba(8, 6, 18, 0.85);
+    color: rgba(255, 255, 255, 0.85);
+    color-scheme: dark;
+}
+
+/* Hide native calendar icon */
+.dark-input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    opacity: 0;
+    position: absolute;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+}
