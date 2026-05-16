@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { animate } from "framer-motion";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     Users,
@@ -36,130 +37,8 @@ import {
 } from "lucide-react";
 import SoftBackdrop from "../../SoftBackdrop";
 import LenisScroll from "../../lenis";
+import axios from "axios";
 
-// ── mock data seeded from the provided DB document ────────────────────────────
-const CANDIDATES = [
-    {
-        _id: "6a01e6692b1e1a535901da74",
-        firstName: "Mriganka",
-        lastName: "Adhikary",
-        email: "mrigankaadhikary01@gmail.com",
-        picture: null,
-        isVerified: true,
-        twoFactorEnabled: true,
-        phone: "+91 98765 43210",
-        location: "Kolkata, West Bengal",
-        linkedin: "linkedin.com/in/mriganka",
-        github: "github.com/mriganka",
-        bio: "Passionate full-stack developer with a keen interest in AI-driven products and scalable web architectures.",
-        skills: ["React", "Node.js", "Python", "MongoDB", "TypeScript", "Docker"],
-        resumeOriginalName: "mriganka_resume_2026.pdf",
-        education: [
-            { degree: "B.Tech Computer Science", institute: "Jadavpur University", year: "2022–2026" },
-        ],
-        createdAt: "2026-05-11T14:23:37.399Z",
-        status: "Active",
-        avgScore: 94,
-        drive: "Senior ML Engineer",
-        completionRate: 88,
-    },
-    {
-        _id: "7b12f7703c2f2b646a02eb85",
-        firstName: "Priya",
-        lastName: "Sharma",
-        email: "priya.sharma@example.com",
-        picture: null,
-        isVerified: true,
-        twoFactorEnabled: false,
-        phone: "+91 91234 56789",
-        location: "Bengaluru, Karnataka",
-        linkedin: "linkedin.com/in/priyasharma",
-        github: "github.com/priyasharma",
-        bio: "UI/UX engineer who loves building accessible, delightful interfaces.",
-        skills: ["Figma", "React", "TailwindCSS", "Framer Motion"],
-        resumeOriginalName: "priya_cv.pdf",
-        education: [
-            { degree: "M.Des Interaction Design", institute: "NID Bengaluru", year: "2021–2023" },
-        ],
-        createdAt: "2026-04-28T09:15:00.000Z",
-        status: "On-Hold",
-        avgScore: 78,
-        drive: "Frontend Dev Q2",
-        completionRate: 72,
-    },
-    {
-        _id: "8c23g8814d3g3c757b13fc96",
-        firstName: "Arnav",
-        lastName: "Bose",
-        email: "arnav.bose@techmail.com",
-        picture: null,
-        isVerified: false,
-        twoFactorEnabled: false,
-        phone: "+91 70000 12345",
-        location: "Hyderabad, Telangana",
-        linkedin: "",
-        github: "github.com/arnavbose",
-        bio: "DevOps enthusiast automating everything that can be automated.",
-        skills: ["Kubernetes", "Terraform", "AWS", "Python", "Bash"],
-        resumeOriginalName: "",
-        education: [
-            { degree: "B.E. Electronics", institute: "BITS Pilani", year: "2019–2023" },
-        ],
-        createdAt: "2026-05-02T11:40:00.000Z",
-        status: "Active",
-        avgScore: 82,
-        drive: "DevOps Engineer",
-        completionRate: 65,
-    },
-    {
-        _id: "9d34h9925e4h4d868c24gd07",
-        firstName: "Sneha",
-        lastName: "Kulkarni",
-        email: "sneha.k@datasci.io",
-        picture: null,
-        isVerified: true,
-        twoFactorEnabled: true,
-        phone: "+91 88900 67890",
-        location: "Pune, Maharashtra",
-        linkedin: "linkedin.com/in/snehakulkarni",
-        github: "github.com/snehakulkarni",
-        bio: "Data scientist passionate about NLP and large language models.",
-        skills: ["Python", "PyTorch", "HuggingFace", "SQL", "Spark"],
-        resumeOriginalName: "sneha_resume.pdf",
-        education: [
-            { degree: "M.Sc Data Science", institute: "IIT Bombay", year: "2020–2022" },
-        ],
-        createdAt: "2026-04-15T08:00:00.000Z",
-        status: "Completed",
-        avgScore: 91,
-        drive: "Data Scientist",
-        completionRate: 95,
-    },
-    {
-        _id: "ae45i0036f5i5e979d35he18",
-        firstName: "Rahul",
-        lastName: "Verma",
-        email: "rahul.verma@qatech.com",
-        picture: null,
-        isVerified: true,
-        twoFactorEnabled: false,
-        phone: "+91 99001 23456",
-        location: "Delhi, NCR",
-        linkedin: "linkedin.com/in/rahulverma",
-        github: "",
-        bio: "QA specialist with 4 years of experience in automation testing.",
-        skills: ["Selenium", "Cypress", "Jest", "Postman", "Java"],
-        resumeOriginalName: "rahul_verma_cv.pdf",
-        education: [
-            { degree: "B.Sc Computer Applications", institute: "Delhi University", year: "2018–2021" },
-        ],
-        createdAt: "2026-05-05T13:20:00.000Z",
-        status: "On-Hold",
-        avgScore: 74,
-        drive: "QA Specialist",
-        completionRate: 58,
-    },
-];
 
 // ── helpers ────────────────────────────────────────────────────────────────────
 const statusStyle = {
@@ -182,10 +61,24 @@ const Avatar = ({ candidate, size = 40, className = "" }) => {
     const bg = colors[idx];
     return (
         <div
-            className={`rounded-full flex items-center justify-center font-bold text-white shrink-0 ${className}`}
+            // className={`rounded-full flex items-center justify-center font-bold text-white shrink-0 ${className}`}\
+            className={`rounded-full overflow-hidden flex items-center justify-center font-bold text-white shrink-0 ${className}`}
             style={{ width: size, height: size, background: `linear-gradient(135deg, ${bg}, ${bg}99)`, fontSize: size * 0.35 }}
         >
-            {initials(candidate.firstName, candidate.lastName)}
+            {candidate?.picture ? (
+                <img
+                    src={
+                        candidate.picture.startsWith("http")
+                            ? candidate.picture
+                            : `http://localhost:4000${candidate.picture}`
+                    }
+                    alt={`${candidate.firstName} ${candidate.lastName}`}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover"
+                />
+            ) : (
+                initials(candidate.firstName, candidate.lastName)
+            )}
         </div>
     );
 };
@@ -341,17 +234,75 @@ const CandidateDrawer = ({ candidate, onClose }) => {
                     {candidate.education.length > 0 && (
                         <section>
                             <p className="text-white/35 text-[10px] uppercase tracking-widest font-semibold mb-3">Education</p>
-                            {candidate.education.map((ed, i) => (
-                                <div key={i} className="flex items-start gap-3 rounded-xl p-3 border border-white/6"
-                                    style={{ background: "rgba(255,255,255,0.02)" }}>
-                                    <GraduationCap size={16} className="text-purple-400 shrink-0 mt-0.5" />
-                                    <div>
-                                        <p className="text-white font-semibold text-xs">{ed.degree}</p>
-                                        <p className="text-white/45 text-[11px] mt-0.5">{ed.institute}</p>
-                                        <p className="text-white/25 text-[10px] mt-0.5">{ed.year}</p>
+                            <div className="space-y-3">
+                                {candidate.education.map((ed, i) => (
+                                    <div key={ed._id ?? i} className="rounded-xl p-4 border border-white/6"
+                                        style={{ background: "rgba(255,255,255,0.02)" }}>
+                                        <div className="flex items-start gap-3">
+                                            <GraduationCap size={16} className="text-purple-400 shrink-0 mt-0.5" />
+                                            <div className="flex-1 min-w-0">
+                                                {/* degree + current badge */}
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <p className="text-white font-semibold text-xs">{ed.degree}</p>
+                                                    {ed.current && (
+                                                        <span className="px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                                                            Current
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {/* institution */}
+                                                <p className="text-white/55 text-[11px] mt-0.5">{ed.institution}</p>
+                                                {/* university + year row */}
+                                                <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                                                    {ed.university && (
+                                                        <div className="flex items-center gap-1 text-white/35 text-[10px]">
+                                                            <BookOpen size={10} className="text-indigo-400" />
+                                                            <span>{ed.university}</span>
+                                                        </div>
+                                                    )}
+                                                    {ed.year && (
+                                                        <div className="flex items-center gap-1 text-white/35 text-[10px]">
+                                                            <Calendar size={10} className="text-indigo-400" />
+                                                            <span>{ed.year}</span>
+                                                        </div>
+                                                    )}
+                                                    {ed.cgpa && (
+                                                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md"
+                                                            style={{ background: "rgba(99,102,241,0.12)", color: "#a5b4fc" }}>
+                                                            CGPA {ed.cgpa}
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                {/* attached docs */}
+                                                {ed.docs?.length > 0 && (
+                                                    <div className="mt-3 space-y-1.5">
+                                                        {ed.docs.map((doc, j) => (
+                                                            <a
+                                                                key={doc._id ?? j}
+                                                                href={`http://localhost:4000${doc.path}`}
+                                                                download={doc.name}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg border border-white/6 hover:border-indigo-500/30 hover:bg-indigo-500/5 transition group"
+                                                            >
+                                                                <div className="flex items-center gap-2 min-w-0">
+                                                                    <FileText size={11} className="text-indigo-400 shrink-0" />
+                                                                    <span className="text-white/60 text-[10px] truncate">{doc.name}</span>
+                                                                    {doc.size && (
+                                                                        <span className="text-white/25 text-[9px] shrink-0">{doc.size}</span>
+                                                                    )}
+                                                                </div>
+                                                                <Download size={10} className="text-indigo-400/60 group-hover:text-indigo-300 shrink-0 transition" />
+                                                            </a>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </section>
                     )}
 
@@ -394,9 +345,15 @@ const CandidateDrawer = ({ candidate, onClose }) => {
                                     <FileText size={14} className="text-indigo-400" />
                                     <p className="text-white/70 text-xs truncate max-w-[180px]">{candidate.resumeOriginalName}</p>
                                 </div>
-                                <button className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300 text-[11px] transition">
-                                    <Download size={12} /> Download
-                                </button>
+                                    <a
+                                        href={`http://localhost:4000${candidate.resumeUrl}`}
+                                        download={candidate.resumeOriginalName}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-1 text-indigo-400 hover:text-indigo-300 text-[11px] transition"
+                                    >
+                                        <Download size={12} /> Download
+                                    </a>
                             </div>
                         </section>
                     )}
@@ -418,6 +375,29 @@ const CandidateDrawer = ({ candidate, onClose }) => {
         </>
     );
 };
+// ── Count Animation ────────────────────────────────────────────────────────
+
+const CountUp = ({ value, duration = 1.2 }) => {
+    const ref = useRef(null);
+
+    useEffect(() => {
+        const node = ref.current;
+
+        const controls = animate(0, value, {
+            duration,
+            ease: "easeOut",
+            onUpdate(latest) {
+                if (node) {
+                    node.textContent = Math.round(latest);
+                }
+            },
+        });
+
+        return () => controls.stop();
+    }, [value, duration]);
+
+    return <span ref={ref}>0</span>;
+};
 
 // ── Main CandidatesPage ────────────────────────────────────────────────────────
 const CandidatesPage = () => {
@@ -425,10 +405,37 @@ const CandidatesPage = () => {
     const [filterStatus, setFilterStatus] = useState("All");
     const [selected, setSelected] = useState(null);
     const [sortBy, setSortBy] = useState("name");
+    const [candidates, setCandidates] = useState([]);
 
     const statuses = ["All", "Active", "On-Hold", "Completed"];
 
-    const filtered = CANDIDATES
+    useEffect(() => {
+
+        const fetchCandidates = async () => {
+    
+            try {
+    
+                const res = await axios.get(
+                    "http://localhost:4000/api/candidates"
+                );
+    
+                setCandidates(res.data.candidates);
+    
+            } catch (error) {
+    
+                console.log(error);
+    
+            } finally {
+    
+                setLoading(false);
+            }
+        };
+    
+        fetchCandidates();
+    
+    }, []);
+
+    const filtered = candidates
         .filter((c) => {
             const q = search.toLowerCase();
             const name = `${c.firstName} ${c.lastName}`.toLowerCase();
@@ -442,9 +449,75 @@ const CandidatesPage = () => {
             return `${a.firstName}${a.lastName}`.localeCompare(`${b.firstName}${b.lastName}`);
         });
 
-    const totalActive    = CANDIDATES.filter(c => c.status === "Active").length;
-    const totalCompleted = CANDIDATES.filter(c => c.status === "Completed").length;
-    const avgScore       = Math.round(CANDIDATES.reduce((s, c) => s + c.avgScore, 0) / CANDIDATES.length);
+    const totalActive    = candidates.filter(c => c.status === "Active").length;
+    const totalCompleted = candidates.filter(c => c.status === "Completed").length;
+    const avgScore =
+    candidates.length > 0
+        ? Math.round(
+              candidates.reduce((s, c) => s + c.avgScore, 0) /
+              candidates.length
+          )
+        : 0;
+
+    const exportCSV = () => {
+
+        const headers = [
+            "Name",
+            "Email",
+            "Phone",
+            "Location",
+            "Drive",
+            "Status",
+            "Average Score",
+            "Completion Rate",
+            "2FA Enabled",
+            "Verified",
+            "Registered Date",
+        ];
+    
+        const rows = filtered.map((c) => [
+            `${c.firstName} ${c.lastName}`,
+            c.email,
+            c.phone || "",
+            c.location || "",
+            c.drive || "",
+            c.status || "",
+            c.avgScore || 0,
+            `${c.completionRate || 0}%`,
+            c.twoFactorEnabled ? "Yes" : "No",
+            c.isVerified ? "Yes" : "No",
+            fmt(c.createdAt),
+        ]);
+    
+        const csvContent = [
+            headers.join(","),
+            ...rows.map((row) =>
+                row.map((field) => `"${field}"`).join(",")
+            ),
+        ].join("\n");
+    
+        const blob = new Blob(
+            [csvContent],
+            { type: "text/csv;charset=utf-8;" }
+        );
+    
+        const url = URL.createObjectURL(blob);
+    
+        const link = document.createElement("a");
+    
+        link.href = url;
+    
+        link.setAttribute(
+            "download",
+            `candidates_${Date.now()}.csv`
+        );
+    
+        document.body.appendChild(link);
+    
+        link.click();
+    
+        document.body.removeChild(link);
+    };
 
     return (
         <>
@@ -458,7 +531,7 @@ const CandidatesPage = () => {
                             <p className="text-white/45 font-semibold text-[11px] uppercase tracking-widest">Candidates</p>
                         </div>
                         <h2 className="text-2xl font-extrabold text-white tracking-tight">Candidate Pool</h2>
-                        <p className="text-white/35 text-xs mt-0.5">{CANDIDATES.length} total candidates across all drives</p>
+                        <p className="text-white/35 text-xs mt-0.5">{candidates.length} total candidates across all drives</p>
                     </div>
                     <button className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white transition"
                         style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
@@ -469,7 +542,7 @@ const CandidatesPage = () => {
                 {/* summary stats */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {[
-                        { label: "Total", value: CANDIDATES.length, color: "#818cf8", Icon: Users },
+                        { label: "Total", value: candidates.length, color: "#818cf8", Icon: Users },
                         { label: "Active", value: totalActive, color: "#4ade80", Icon: UserCheck },
                         { label: "Completed", value: totalCompleted, color: "#38bdf8", Icon: BadgeCheck },
                         { label: "Avg Score", value: avgScore, color: "#facc15", Icon: Star },
@@ -482,7 +555,9 @@ const CandidatesPage = () => {
                                 <s.Icon size={16} style={{ color: s.color }} />
                             </div>
                             <div>
-                                <p className="text-white font-bold text-xl leading-none">{s.value}</p>
+                                <p className="text-white font-bold text-xl leading-none">
+                                    <CountUp value={s.value} />
+                                </p>
                                 <p className="text-white/35 text-[11px] mt-0.5">{s.label}</p>
                             </div>
                         </motion.div>
@@ -620,8 +695,11 @@ const CandidatesPage = () => {
 
                     {/* table footer */}
                     <div className="px-5 py-3 border-t border-white/5 flex items-center justify-between">
-                        <p className="text-white/25 text-[11px]">Showing {filtered.length} of {CANDIDATES.length} candidates</p>
-                        <button className="text-indigo-400 text-[11px] hover:text-indigo-300 flex items-center gap-1 transition">
+                        <p className="text-white/25 text-[11px]">Showing {filtered.length} of {candidates.length} candidates</p>
+                        <button
+                            onClick={exportCSV}
+                            className="text-indigo-400 text-[11px] hover:text-indigo-300 flex items-center gap-1 transition"
+                        >
                             Export CSV <Download size={11} />
                         </button>
                     </div>

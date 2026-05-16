@@ -19,6 +19,10 @@ import practiceRoutes from "./routes/practice.js";
 import compilerRoutes from "./routes/compiler.js";
 import aiQuestionRoutes from "./routes/aiQuestions.js";
 
+import candidateRoutes from "./routes/candidate.js";
+
+import driveRoutes from "./routes/drive.js";
+
 dotenv.config();
 
 initGoogleStrategy();
@@ -153,6 +157,16 @@ app.use(
 app.use(
   "/api/ai",
   aiQuestionRoutes
+);
+
+app.use(
+  "/api/candidates", 
+  candidateRoutes
+);
+
+app.use(
+  "/api/drives",
+  driveRoutes
 );
 
 // ============================

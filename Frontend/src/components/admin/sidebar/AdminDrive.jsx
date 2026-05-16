@@ -5,66 +5,17 @@ import {
     X, Eye, Edit3, CheckCircle2, PauseCircle, PlayCircle, AlertCircle,
     Download, ChevronDown, SlidersHorizontal, Code2, Star, ArrowUpRight,
     Lock, Globe, Layers, Timer, Trophy, ClipboardList, FileText,
-    Briefcase, AlignLeft, CheckSquare, Sparkles, Gauge,
+    Briefcase, AlignLeft, CheckSquare, Sparkles, Gauge, Wand2, Bot,
+    RefreshCw, ChevronLeft, Trash2, Check,
 } from "lucide-react";
+import axios from "axios";
+import { useEffect } from "react";
+import { CalendarDays } from "lucide-react";
+import CreateDriveModal from "../drive/CreateDriveModal";
+
 
 // ── mock data ──────────────────────────────────────────────────────────────────
-const INITIAL_DRIVES = [
-    {
-        _id: "d001", title: "Senior ML Engineer", tag: "Engineering", status: "Active", visibility: "Private",
-        startDate: "2026-05-01T00:00:00.000Z", endDate: "2026-05-25T00:00:00.000Z",
-        totalCandidates: 24, attempted: 18, avgScore: 81, topScore: 96,
-        duration: 90, questionCount: 32, mcqCount: 20, codeCount: 12,
-        marksPerMcq: 2, marksPerCode: 5, type: "Assessment",
-        createdAt: "2026-04-20T10:00:00.000Z", difficulty: "Hard",
-        tags: ["Python", "ML", "System Design"], completionRate: 75,
-    },
-    {
-        _id: "d002", title: "Frontend Dev Q2", tag: "Design & Dev", status: "Active", visibility: "Public",
-        startDate: "2026-04-28T00:00:00.000Z", endDate: "2026-06-01T00:00:00.000Z",
-        totalCandidates: 41, attempted: 29, avgScore: 74, topScore: 91,
-        duration: 60, questionCount: 25, mcqCount: 18, codeCount: 7,
-        marksPerMcq: 1, marksPerCode: 4, type: "Assessment",
-        createdAt: "2026-04-10T09:00:00.000Z", difficulty: "Medium",
-        tags: ["React", "CSS", "TypeScript"], completionRate: 71,
-    },
-    {
-        _id: "d003", title: "DevOps Engineer", tag: "Infrastructure", status: "Completed", visibility: "Private",
-        startDate: "2026-03-10T00:00:00.000Z", endDate: "2026-04-10T00:00:00.000Z",
-        totalCandidates: 17, attempted: 17, avgScore: 68, topScore: 88,
-        duration: 75, questionCount: 28, mcqCount: 20, codeCount: 8,
-        marksPerMcq: 1, marksPerCode: 5, type: "Assessment",
-        createdAt: "2026-03-01T08:00:00.000Z", difficulty: "Hard",
-        tags: ["Kubernetes", "AWS", "Terraform"], completionRate: 100,
-    },
-    {
-        _id: "d004", title: "Data Scientist", tag: "Analytics", status: "Completed", visibility: "Private",
-        startDate: "2026-03-01T00:00:00.000Z", endDate: "2026-04-01T00:00:00.000Z",
-        totalCandidates: 33, attempted: 33, avgScore: 85, topScore: 98,
-        duration: 120, questionCount: 40, mcqCount: 28, codeCount: 12,
-        marksPerMcq: 2, marksPerCode: 6, type: "Assessment",
-        createdAt: "2026-02-20T11:00:00.000Z", difficulty: "Hard",
-        tags: ["Python", "PyTorch", "SQL"], completionRate: 100,
-    },
-    {
-        _id: "d005", title: "QA Specialist", tag: "Quality", status: "On-Hold", visibility: "Public",
-        startDate: "2026-05-15T00:00:00.000Z", endDate: "2026-06-15T00:00:00.000Z",
-        totalCandidates: 12, attempted: 0, avgScore: 0, topScore: 0,
-        duration: 45, questionCount: 20, mcqCount: 15, codeCount: 5,
-        marksPerMcq: 1, marksPerCode: 3, type: "Quiz",
-        createdAt: "2026-05-08T14:00:00.000Z", difficulty: "Easy",
-        tags: ["Selenium", "Jest", "Postman"], completionRate: 0,
-    },
-    {
-        _id: "d006", title: "Backend Engineer – Node", tag: "Engineering", status: "Draft", visibility: "Private",
-        startDate: "2026-06-01T00:00:00.000Z", endDate: "2026-07-01T00:00:00.000Z",
-        totalCandidates: 0, attempted: 0, avgScore: 0, topScore: 0,
-        duration: 90, questionCount: 35, mcqCount: 22, codeCount: 13,
-        marksPerMcq: 2, marksPerCode: 5, type: "Assessment",
-        createdAt: "2026-05-11T16:00:00.000Z", difficulty: "Medium",
-        tags: ["Node.js", "PostgreSQL", "Redis"], completionRate: 0,
-    },
-];
+const INITIAL_DRIVES = [];
 
 // ── helpers ────────────────────────────────────────────────────────────────────
 const STATUS_STYLE = {
@@ -88,6 +39,22 @@ const daysLeft   = (end) => { const d = Math.ceil((new Date(end) - Date.now()) /
 // ── Shared form sub-components ─────────────────────────────────────────────────
 const FIELD_BG = { background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)" };
 
+/* Dark-themed global overrides injected once */
+const DARK_INPUT_STYLE = `
+  .dark-input, .dark-select {
+    color-scheme: dark;
+  }
+  .dark-input::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(0.7);
+    opacity: 0.6;
+    cursor: pointer;
+  }
+  .dark-select option {
+    background: #0f0d1f;
+    color: rgba(255,255,255,0.8);
+  }
+`;
+
 const Field = ({ label, icon: Icon, error, children }) => (
     <div className="flex flex-col gap-1.5">
         <label className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-white/35">
@@ -105,40 +72,59 @@ const TInput = ({
     placeholder,
     type = "text",
     error,
+    icon: Icon,
     ...rest
-  }) => (
-    <input
-      type={type}
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      className={`
-        w-full px-3 py-2.5 rounded-xl text-xs
-        bg-white/[0.04]
-        text-white/80
-        placeholder-white/20
-        outline-none transition
-        border
-        appearance-none
-        [&::-webkit-calendar-picker-indicator]:opacity-100
-        [&::-webkit-calendar-picker-indicator]:cursor-pointer
-        [&::-webkit-calendar-picker-indicator]:invert
-        ${
-          error
-            ? "border-rose-500/50 focus:border-rose-500/70"
-            : "border-white/8 focus:border-indigo-500/50"
-        }
-      `}
-      {...rest}
-    />
-  );
+}) => {
+    const isDate = type === "datetime-local";
+
+    return (
+        <div className="relative">
+            {Icon && (
+                <Icon
+                    size={15}
+                    className={`absolute top-1/2 -translate-y-1/2 text-white/35 pointer-events-none z-10 ${
+                        isDate ? "left-3" : "left-3"
+                    }`}
+                />
+            )}
+
+            <input
+                type={type}
+                value={value}
+                onChange={onChange}
+                placeholder={placeholder}
+                className={`dark-input w-full ${
+                    Icon ? "pl-10" : "pl-3"
+                } ${
+                    isDate ? "pr-10" : "pr-3"
+                } py-2.5 rounded-xl text-xs text-white/80 placeholder-white/20 outline-none transition border ${
+                    error
+                        ? "border-rose-500/50 focus:border-rose-500/70"
+                        : "border-white/8 focus:border-indigo-500/50"
+                }`}
+                {...rest}
+            />
+
+            {isDate && (
+                <CalendarDays
+                    size={15}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/35 pointer-events-none"
+                />
+            )}
+        </div>
+    );
+};
 
 const SInput = ({ value, onChange, children, error }) => (
     <div className="relative">
-        <select value={value} onChange={onChange}
-            className={`w-full appearance-none px-3 py-2.5 pr-8 rounded-xl text-xs outline-none cursor-pointer transition
-                ${error ? "border border-rose-500/50" : "border border-white/8 focus:border-indigo-500/50"}`}
-            style={{ ...FIELD_BG, color:"rgba(255,255,255,0.75)" }}>
+        <select
+            value={value}
+            onChange={onChange}
+            className={`dark-select w-full appearance-none px-3 py-2.5 pr-8 rounded-xl text-xs outline-none cursor-pointer transition ${
+                error ? "border border-rose-500/50" : "border border-white/8 focus:border-indigo-500/50"
+            }`}
+            style={{ background:"rgba(8,6,18,0.85)", color:"rgba(255,255,255,0.75)", colorScheme:"dark" }}
+        >
             {children}
         </select>
         <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
@@ -154,308 +140,39 @@ const MiniBar = ({ pct, color }) => (
     </div>
 );
 
+// ── AI Prompt suggestions ──────────────────────────────────────────────────────
+const AI_SUGGESTIONS = [
+    "Generate 20 MCQ questions on React hooks, closures, and async/await with varying difficulty levels.",
+    "Create 5 coding problems covering data structures (arrays, trees, graphs) suitable for senior engineers.",
+    "Write 15 aptitude questions on logical reasoning, number series, and probability for campus hiring.",
+    "Generate questions testing REST API design, system design basics, and database normalization.",
+    "Create a balanced question set covering DSA, OOP concepts, and problem-solving for intermediate developers.",
+];
+
 // ── Create Drive Modal ─────────────────────────────────────────────────────────
 const EMPTY = {
-    title:"", tag:"", type:"Assessment", startDate:"", endDate:"",
-    difficulty:"Intermediate", duration:"", visibility:"Private",
-    mcqCount:"", codeCount:"", marksPerMcq:"", marksPerCode:"",
+    title:"", 
+    tag:"", 
+    type:"Assessment", 
+    startDate:"", 
+    endDate:"",
+    difficulty:"Intermediate", 
+    duration:"", 
+    visibility:"Private",
+
+    mcqCount:"",
+    codeCount:"",
+
+    marksPerMcq:"",
+    marksPerCode:"",
+
+    aiPrompt:"",
+
+    emailTitle:"",
+    emailBody:"",
 };
 
-const CreateDriveModal = ({ onClose, onSave }) => {
-    const [form, setForm]     = useState(EMPTY);
-    const [errors, setErrors] = useState({});
-    const [step, setStep]     = useState(1);
-    const [saving, setSaving] = useState(false);
-    const [done, setDone]     = useState(false);
 
-    const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
-
-    const validate1 = () => {
-        const e = {};
-        if (!form.title.trim()) e.title = "Position name is required";
-        if (!form.tag.trim())   e.tag   = "Category is required";
-        if (!form.startDate)    e.startDate = "Start date required";
-        if (!form.endDate)      e.endDate   = "End date required";
-        if (form.startDate && form.endDate && form.endDate <= form.startDate)
-            e.endDate = "End must be after start";
-        if (!form.duration || isNaN(form.duration) || +form.duration <= 0)
-            e.duration = "Enter a valid duration";
-        return e;
-    };
-    const validate2 = () => {
-        const e = {};
-        if (form.mcqCount === "" || isNaN(form.mcqCount) || +form.mcqCount < 0)  e.mcqCount  = "Enter MCQ count";
-        if (form.codeCount === "" || isNaN(form.codeCount) || +form.codeCount < 0) e.codeCount = "Enter code Q count";
-        if ((+form.mcqCount||0) + (+form.codeCount||0) === 0) e.mcqCount = "Add at least 1 question";
-        if (!form.marksPerMcq  || isNaN(form.marksPerMcq))  e.marksPerMcq  = "Required";
-        if (!form.marksPerCode || isNaN(form.marksPerCode)) e.marksPerCode = "Required";
-        return e;
-    };
-
-    const handleNext = () => {
-        const e = validate1();
-        if (Object.keys(e).length) { setErrors(e); return; }
-        setErrors({}); setStep(2);
-    };
-    const handleSave = async () => {
-        const e = validate2();
-        if (Object.keys(e).length) { setErrors(e); return; }
-        setSaving(true);
-        await new Promise(r => setTimeout(r, 800));
-        const d = {
-            _id: `d${Date.now()}`, title: form.title.trim(), tag: form.tag.trim(),
-            status:"Draft", visibility:form.visibility, type:form.type,
-            startDate: new Date(form.startDate).toISOString(),
-            endDate:   new Date(form.endDate).toISOString(),
-            totalCandidates:0, attempted:0, avgScore:0, topScore:0,
-            duration:+form.duration,
-            questionCount: +form.mcqCount + +form.codeCount,
-            mcqCount:+form.mcqCount, codeCount:+form.codeCount,
-            marksPerMcq:+form.marksPerMcq, marksPerCode:+form.marksPerCode,
-            createdAt: new Date().toISOString(), difficulty:form.difficulty,
-            tags:[], completionRate:0,
-        };
-        setSaving(false); setDone(true);
-        await new Promise(r => setTimeout(r, 900));
-        onSave(d); onClose();
-    };
-
-    const totalQs    = (+form.mcqCount||0) + (+form.codeCount||0);
-    const totalMarks = (+form.mcqCount||0)*(+form.marksPerMcq||0) + (+form.codeCount||0)*(+form.marksPerCode||0);
-
-    return (
-        <motion.div key="modal-bd"
-            initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            style={{ background:"rgba(0,0,0,0.75)", backdropFilter:"blur(10px)" }}
-            onClick={onClose}>
-
-            <motion.div
-                initial={{ opacity:0, scale:0.93, y:20 }}
-                animate={{ opacity:1, scale:1,    y:0 }}
-                exit={{   opacity:0, scale:0.93, y:20 }}
-                transition={{ type:"spring", damping:26, stiffness:280 }}
-                onClick={e => e.stopPropagation()}
-                className="w-full max-w-[520px] rounded-3xl border border-white/[0.07] flex flex-col overflow-hidden"
-                style={{ background:"rgba(11,8,24,0.99)", boxShadow:"0 40px 100px rgba(0,0,0,0.7), 0 0 0 1px rgba(99,102,241,0.15)" }}>
-
-                {/* top accent line */}
-                <div className="h-[2px]" style={{ background:"linear-gradient(90deg,#6366f1,#8b5cf6,#a855f7,transparent)" }} />
-
-                {/* header */}
-                <div className="flex items-center justify-between px-6 pt-6 pb-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-                            style={{ background:"rgba(99,102,241,0.15)", border:"1px solid rgba(99,102,241,0.3)" }}>
-                            {done
-                                ? <CheckCircle2 size={16} className="text-emerald-400" />
-                                : <Zap size={16} className="text-indigo-400" />}
-                        </div>
-                        <div>
-                            <p className="text-white font-bold text-base leading-tight">
-                                {done ? "Drive Created!" : "Create New Drive"}
-                            </p>
-                            <p className="text-white/30 text-[11px] mt-0.5">
-                                {done ? "Adding to your drives list…"
-                                    : step === 1 ? "Step 1 of 2 — Basic Info"
-                                    : "Step 2 of 2 — Questions & Scoring"}
-                            </p>
-                        </div>
-                    </div>
-                    <button onClick={onClose}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center text-white/30 hover:text-white hover:bg-white/6 transition">
-                        <X size={15} />
-                    </button>
-                </div>
-
-                {/* step bar */}
-                <div className="px-6 mb-1">
-                    <div className="flex items-center gap-2">
-                        {[1,2].map(s => (
-                            <React.Fragment key={s}>
-                                <div className={`flex items-center gap-1.5 text-[10px] font-semibold transition ${step >= s ? "text-indigo-300" : "text-white/20"}`}>
-                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center font-bold transition border
-                                        ${step > s  ? "bg-indigo-500 border-indigo-400 text-white"
-                                        : step === s ? "border-indigo-500/70 text-indigo-300 bg-indigo-500/10"
-                                        : "border-white/10 text-white/20"}`} style={{ fontSize:10 }}>
-                                        {step > s ? <CheckCircle2 size={10}/> : s}
-                                    </div>
-                                    {s === 1 ? "Basic Info" : "Questions"}
-                                </div>
-                                {s < 2 && <div className={`flex-1 h-px transition ${step > s ? "bg-indigo-500/50" : "bg-white/8"}`} />}
-                            </React.Fragment>
-                        ))}
-                    </div>
-                </div>
-
-                {/* scrollable body */}
-                <div className="px-6 pb-2 overflow-y-auto max-h-[440px]"
-                    style={{ scrollbarWidth:"thin", scrollbarColor:"rgba(99,102,241,0.2) transparent" }}>
-                    <AnimatePresence mode="wait">
-
-                        {/* STEP 1 */}
-                        {step === 1 && (
-                            <motion.div key="s1"
-                                initial={{ opacity:0, x:-20 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:20 }}
-                                transition={{ duration:0.18 }} className="space-y-4 py-4">
-
-                                <Field label="Position Name" icon={Briefcase} error={errors.title}>
-                                    <TInput value={form.title} onChange={set("title")}
-                                        placeholder="e.g. Senior React Engineer" error={errors.title} />
-                                </Field>
-
-                                <div className="grid grid-cols-2 gap-3">
-                                    <Field label="Category" icon={AlignLeft} error={errors.tag}>
-                                        <TInput value={form.tag} onChange={set("tag")}
-                                            placeholder="e.g. Engineering" error={errors.tag} />
-                                    </Field>
-                                    <Field label="Drive Type" icon={FileText}>
-                                        <SInput value={form.type} onChange={set("type")}>
-                                            <option>Assessment</option>
-                                            <option>Interview</option>
-                                        </SInput>
-                                    </Field>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-3">
-                                    <Field label="Start Date" icon={Calendar} error={errors.startDate}>
-                                        <TInput type="datetime-local" value={form.startDate} onChange={set("startDate")} error={errors.startDate} />
-                                    </Field>
-                                    <Field label="End Date" icon={Calendar} error={errors.endDate}>
-                                        <TInput type="datetime-local" value={form.endDate} onChange={set("endDate")} error={errors.endDate} />
-                                    </Field>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-3 ">
-                                    <Field label="Difficulty" icon={Gauge}>
-                                        <SInput value={form.difficulty} onChange={set("difficulty")}>
-                                            <option >Beginner</option>
-                                            <option>Intermediate</option>
-                                            <option>Advanced</option>
-                                        </SInput>
-                                    </Field>
-                                    <Field label="Duration (min)" icon={Timer} error={errors.duration}>
-                                        <TInput type="number" value={form.duration} onChange={set("duration")}
-                                            placeholder="e.g. 90" error={errors.duration} min="1" />
-                                    </Field>
-                                </div>
-
-                            </motion.div>
-                        )}
-
-                        {/* STEP 2 */}
-                        {step === 2 && (
-                            <motion.div key="s2"
-                                initial={{ opacity:0, x:20 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-20 }}
-                                transition={{ duration:0.18 }} className="space-y-4 py-4">
-
-                                {/* MCQ section */}
-                                <div className="rounded-2xl border border-indigo-500/15 p-4 space-y-3"
-                                    style={{ background:"rgba(99,102,241,0.05)" }}>
-                                    <div className="flex items-center gap-2 pb-1 border-b border-indigo-500/10">
-                                        <CheckSquare size={13} className="text-indigo-400" />
-                                        <p className="text-indigo-300 text-[11px] font-bold uppercase tracking-widest">MCQ Questions</p>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <Field label="Number of MCQs" error={errors.mcqCount}>
-                                            <TInput type="number" value={form.mcqCount} onChange={set("mcqCount")}
-                                                placeholder="e.g. 20" error={errors.mcqCount} min="0" />
-                                        </Field>
-                                        <Field label="Marks per MCQ" error={errors.marksPerMcq}>
-                                            <TInput type="number" value={form.marksPerMcq} onChange={set("marksPerMcq")}
-                                                placeholder="e.g. 2" error={errors.marksPerMcq} min="0" />
-                                        </Field>
-                                    </div>
-                                </div>
-
-                                {/* Code section */}
-                                <div className="rounded-2xl border border-purple-500/15 p-4 space-y-3"
-                                    style={{ background:"rgba(139,92,246,0.05)" }}>
-                                    <div className="flex items-center gap-2 pb-1 border-b border-purple-500/10">
-                                        <Code2 size={13} className="text-purple-400" />
-                                        <p className="text-purple-300 text-[11px] font-bold uppercase tracking-widest">Coding Questions</p>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <Field label="Number of Code Qs" error={errors.codeCount}>
-                                            <TInput type="number" value={form.codeCount} onChange={set("codeCount")}
-                                                placeholder="e.g. 5" error={errors.codeCount} min="0" />
-                                        </Field>
-                                        <Field label="Marks per Code Q" error={errors.marksPerCode}>
-                                            <TInput type="number" value={form.marksPerCode} onChange={set("marksPerCode")}
-                                                placeholder="e.g. 10" error={errors.marksPerCode} min="0" />
-                                        </Field>
-                                    </div>
-                                </div>
-
-                                {/* live summary */}
-                                <AnimatePresence>
-                                    {totalQs > 0 && (
-                                        <motion.div
-                                            initial={{ opacity:0, y:8, scale:0.97 }}
-                                            animate={{ opacity:1, y:0, scale:1 }}
-                                            exit={{   opacity:0, y:4, scale:0.97 }}
-                                            className="rounded-xl p-3.5 border border-indigo-500/20 flex items-center gap-3"
-                                            style={{ background:"rgba(99,102,241,0.08)" }}>
-                                            <Sparkles size={14} className="text-indigo-400 shrink-0" />
-                                            <div className="flex-1 grid grid-cols-3 gap-2 text-center">
-                                                {[
-                                                    { label:"Total Qs",    val: totalQs },
-                                                    { label:"Total Marks", val: totalMarks || "—" },
-                                                    { label:"Duration",    val: form.duration ? `${form.duration}m` : "—" },
-                                                ].map(s => (
-                                                    <div key={s.label}>
-                                                        <p className="text-white font-bold text-sm">{s.val}</p>
-                                                        <p className="text-white/30 text-[10px]">{s.label}</p>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </div>
-
-                {/* footer actions */}
-                <div className="px-6 py-5 border-t border-white/6 flex gap-2.5">
-                    {step === 1 ? (
-                        <>
-                            <button onClick={onClose}
-                                className="flex-1 py-2.5 rounded-xl text-xs font-semibold border border-white/8 text-white/35 hover:text-white hover:bg-white/5 transition">
-                                Cancel
-                            </button>
-                            <button onClick={handleNext}
-                                className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-white flex items-center justify-center gap-2"
-                                style={{ background:"linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
-                                Next — Questions <ChevronRight size={13} />
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            <button onClick={() => { setErrors({}); setStep(1); }}
-                                className="flex-1 py-2.5 rounded-xl text-xs font-semibold border border-white/8 text-white/35 hover:text-white hover:bg-white/5 transition">
-                                ← Back
-                            </button>
-                            <button onClick={handleSave} disabled={saving||done}
-                                className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-white flex items-center justify-center gap-2 transition disabled:opacity-60"
-                                style={{ background:"linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
-                                {done
-                                    ? <><CheckCircle2 size={13}/> Created!</>
-                                    : saving
-                                    ? <><motion.div animate={{ rotate:360 }}
-                                        transition={{ repeat:Infinity, duration:0.7, ease:"linear" }}
-                                        className="w-3.5 h-3.5 rounded-full border-2 border-white/30 border-t-white" /> Saving…</>
-                                    : <><Zap size={13}/> Save Drive</>
-                                }
-                            </button>
-                        </>
-                    )}
-                </div>
-            </motion.div>
-        </motion.div>
-    );
-};
 
 // ── Detail Drawer ──────────────────────────────────────────────────────────────
 const DriveDrawer = ({ drive, onClose }) => {
@@ -463,6 +180,130 @@ const DriveDrawer = ({ drive, onClose }) => {
     const st   = STATUS_STYLE[drive.status] ?? STATUS_STYLE.Draft;
     const diff = DIFF_STYLE[drive.difficulty] ?? DIFF_STYLE.Medium;
     const [tab, setTab] = useState("overview");
+    const [candidates, setCandidates]   = useState([]);
+    const [candLoading, setCandLoading] = useState(false);
+    const [candError, setCandError]     = useState(null);
+    const [showAssignModal, setShowAssignModal] = useState(false);
+    const [allCandidates, setAllCandidates] = useState([]);
+    const [selectedCandidates, setSelectedCandidates] = useState([]);
+    const [assignLoading, setAssignLoading] = useState(false);
+    const [fetchingCandidates, setFetchingCandidates] = useState(false);
+
+    const fetchCandidates = async () => {
+
+        try {
+    
+            setCandLoading(true);
+    
+            const res = await axios.get(
+                `http://localhost:4000/api/drives/${drive._id}/candidates`
+            );
+    
+            setCandidates(
+                res.data.candidates ?? res.data
+            );
+    
+        } catch (err) {
+    
+            setCandError(
+                "Failed to load candidates."
+            );
+    
+        } finally {
+    
+            setCandLoading(false);
+        }
+    };
+
+    useEffect(() => {
+
+        if (
+            tab !== "candidates" ||
+            !drive?._id
+        ) return;
+    
+        fetchCandidates();
+    
+    }, [tab, drive?._id]);
+
+    const fetchAllCandidates = async () => {
+        try {
+            setFetchingCandidates(true);
+    
+            const res = await axios.get(
+                "http://localhost:4000/api/candidates",
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    },
+                }
+            );
+    
+            const fetchedCandidates = Array.isArray(res.data)
+                ? res.data
+                : res.data.candidates || [];
+
+            const assignedIds = candidates.map((c) => c._id);
+
+            const availableCandidates = fetchedCandidates.filter(
+                (candidate) => !assignedIds.includes(candidate._id)
+            );
+
+            setAllCandidates(availableCandidates);
+
+
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setFetchingCandidates(false);
+        }
+    };
+
+    const openAssignModal = async () => {
+
+        setSelectedCandidates([]);
+    
+        setAllCandidates([]);
+    
+        setShowAssignModal(true);
+    
+        await fetchAllCandidates();
+    };
+
+    const toggleCandidate = (id) => {
+        setSelectedCandidates((prev) =>
+            prev.includes(id)
+                ? prev.filter((c) => c !== id)
+                : [...prev, id]
+        );
+    };
+
+    const assignCandidatesToDrive = async () => {
+        try {
+            setAssignLoading(true);
+    
+            await axios.post(
+                `http://localhost:4000/api/drives/${drive._id}/assign-candidates`,
+                {
+                    candidateIds: selectedCandidates,
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    },
+                }
+            );
+    
+            setShowAssignModal(false);
+            setSelectedCandidates([]);
+            await fetchCandidates();
+    
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setAssignLoading(false);
+        }
+    };
 
     return (
         <AnimatePresence>
@@ -579,23 +420,285 @@ const DriveDrawer = ({ drive, onClose }) => {
                     </>)}
 
                     {tab === "candidates" && (
-                        <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-                            <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                                style={{ background:"rgba(99,102,241,0.1)", border:"1px solid rgba(99,102,241,0.2)" }}>
-                                <Users size={20} className="text-indigo-400" />
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <p className="text-white/35 text-[10px] uppercase tracking-widest font-semibold">
+                                    Enrolled Candidates
+                                </p>
+
+                                {candidates.length > 0 && (
+                                    <div className="flex items-center gap-3">
+
+                                        <span className="text-white/25 text-[10px]">
+                                            {candidates.length} total
+                                        </span>
+
+                                        <button
+                                            onClick={openAssignModal}
+                                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[10px] font-semibold text-indigo-300 border border-indigo-500/25 hover:bg-indigo-500/10 transition"
+                                        >
+                                            <Plus size={11} />
+                                            Assign
+                                        </button>
+
+                                    </div>
+                                )}
                             </div>
-                            <p className="text-white font-semibold text-sm">{drive.totalCandidates} candidates enrolled</p>
-                            <p className="text-white/30 text-xs max-w-[220px]">View and manage from the Candidates section.</p>
-                            <button className="mt-2 flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-indigo-300 border border-indigo-500/25 hover:bg-indigo-500/10 transition">
-                                Open Candidates <ArrowUpRight size={12} />
-                            </button>
+                            {candLoading && (
+                                <div className="flex justify-center py-12">
+                                    <div className="w-8 h-8 rounded-full border-2 border-indigo-500/30 border-t-indigo-400 animate-spin" />
+                                </div>
+                            )}
+                            {candError && !candLoading && (
+                                <div className="flex flex-col items-center py-10 gap-2 text-center">
+                                    <AlertCircle size={22} className="text-rose-400/60" />
+                                    <p className="text-rose-400/70 text-xs">{candError}</p>
+                                </div>
+                            )}
+                            {!candLoading && !candError && candidates.length === 0 && (
+                                <div className="flex flex-col items-center py-14 gap-3 text-center">
+                                    <div className="w-11 h-11 rounded-2xl flex items-center justify-center"
+                                        style={{ background:"rgba(99,102,241,0.08)", border:"1px solid rgba(99,102,241,0.18)" }}>
+                                        <Users size={18} className="text-indigo-400/60" />
+                                    </div>
+                                    <p className="text-white/40 text-sm font-semibold">No candidates enrolled yet</p>
+                                    <p className="text-white/20 text-xs max-w-[220px]">Candidates will appear here once they join this drive.</p>
+
+                                    <button
+                                        onClick={openAssignModal}
+                                        className="mt-3 flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-indigo-300 border border-indigo-500/25 hover:bg-indigo-500/10 transition"
+                                    >
+                                        <Plus size={12} />
+                                        Assign Candidates
+                                    </button>
+                                    
+                                </div>
+
+                                
+                            )}
+                            {!candLoading && !candError && candidates.length > 0 && (
+                                <div className="space-y-2">
+                                    {candidates.map((c, i) => {
+                                        const initials = `${c.firstName?.[0]??""}${c.lastName?.[0]??""}`.toUpperCase();
+                                        const st = STATUS_STYLE[c.status] ?? STATUS_STYLE["Active"];
+                                        const score = c.avgScore ?? c.score ?? null;
+                                        return (
+                                            <motion.div key={c._id ?? i}
+                                                initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }}
+                                                transition={{ delay: i * 0.035 }}
+                                                className="flex items-center gap-3 rounded-xl px-3 py-2.5 border border-white/5 hover:border-indigo-500/20 hover:bg-white/[0.02] transition group"
+                                                style={{ background:"rgba(255,255,255,0.018)" }}>
+                                                <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center shrink-0 text-[11px] font-bold text-white/70 border border-white/8"
+                                                    style={{ background:"rgba(99,102,241,0.14)" }}>
+                                                    {c?.picture ? (
+                                                        <img src={c.picture.startsWith("http") ? c.picture : `http://localhost:4000${c.picture}`}
+                                                            alt={`${c.firstName} ${c.lastName}`} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
+                                                    ) : (initials || <Users size={13} className="text-indigo-400" />)}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-white/85 text-xs font-semibold truncate">{c.firstName} {c.lastName}</p>
+                                                    <p className="text-white/30 text-[10px] truncate">{c.email}</p>
+                                                </div>
+                                                <div className="text-right shrink-0">
+                                                    {score !== null ? (
+                                                        <><p className="text-xs font-bold" style={{ color:scoreColor(score) }}>{score}</p>
+                                                        <p className="text-white/20 text-[9px]">score</p></>
+                                                    ) : <p className="text-white/20 text-[10px]">—</p>}
+                                                </div>
+                                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold shrink-0 ${st.cls}`}>
+                                                    {c.status ?? "Enrolled"}
+                                                </span>
+                                            </motion.div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            <AnimatePresence>
+                                {showAssignModal && (
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+                                    >
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.96, y: 20 }}
+                                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.96, y: 20 }}
+                                            transition={{ duration: 0.2 }}
+                                            className="w-full max-w-2xl rounded-3xl border border-white/10 overflow-hidden"
+                                            style={{
+                                                background: "rgba(15,15,25,0.96)",
+                                                backdropFilter: "blur(20px)",
+                                            }}
+                                        >
+
+                                            {/* Header */}
+                                            <div className="flex items-center justify-between px-6 py-5 border-b border-white/6">
+
+                                                <div>
+                                                    <h3 className="text-white text-lg font-semibold">
+                                                        Assign Candidates
+                                                    </h3>
+
+                                                    <p className="text-white/35 text-xs mt-1">
+                                                        Select candidates to assign to this drive
+                                                    </p>
+                                                </div>
+
+                                                <div className="flex items-center gap-2">
+
+                                                    {allCandidates.length > 0 && (
+                                                        <button
+                                                            onClick={() => {
+
+                                                                if (
+                                                                    selectedCandidates.length === allCandidates.length
+                                                                ) {
+
+                                                                    setSelectedCandidates([]);
+
+                                                                } else {
+
+                                                                    setSelectedCandidates(
+                                                                        allCandidates.map((c) => c._id)
+                                                                    );
+                                                                }
+                                                            }}
+                                                            className="px-3 py-2 rounded-xl border border-indigo-500/20 text-indigo-300 text-[11px] font-semibold hover:bg-indigo-500/10 transition"
+                                                        >
+                                                            {selectedCandidates.length === allCandidates.length
+                                                                ? "Deselect All"
+                                                                : "Select All"}
+                                                        </button>
+                                                    )}
+
+                                                    <button
+                                                        onClick={() => setShowAssignModal(false)}
+                                                        className="w-9 h-9 rounded-xl border border-white/10 flex items-center justify-center text-white/60 hover:bg-white/5"
+                                                    >
+                                                        ✕
+                                                    </button>
+
+                                                </div>
+                                            </div>
+
+                                            {/* Candidate List */}
+                                            <div className="max-h-[420px] overflow-y-auto px-6 py-4 space-y-2">
+
+                                                {fetchingCandidates ? (
+                                                    <div className="flex justify-center py-12">
+                                                        <div className="w-8 h-8 rounded-full border-2 border-indigo-500/30 border-t-indigo-400 animate-spin" />
+                                                    </div>
+                                                ) : (
+                                                    allCandidates.map((candidate) => {
+
+                                                        const selected = selectedCandidates.includes(candidate._id);
+
+                                                        return (
+                                                            <button
+                                                                key={candidate._id}
+                                                                onClick={() => toggleCandidate(candidate._id)}
+                                                                className={`w-full flex items-center gap-3 p-3 rounded-2xl border transition text-left
+                                                                             ${selected
+                                                                        ? "border-indigo-500/40 bg-indigo-500/10"
+                                                                        : "border-white/6 hover:border-white/15 hover:bg-white/[0.03]"
+                                                                    }`}
+                                                            >
+
+                                                                <div
+                                                                    className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center text-xs font-bold text-white border border-white/10 shrink-0"
+                                                                    style={{
+                                                                        background: "rgba(99,102,241,0.18)",
+                                                                    }}
+                                                                >
+                                                                    {candidate?.picture ? (
+                                                                        <img
+                                                                            src={
+                                                                                candidate.picture.startsWith("http")
+                                                                                    ? candidate.picture
+                                                                                    : `http://localhost:4000${candidate.picture}`
+                                                                            }
+                                                                            alt={`${candidate.firstName} ${candidate.lastName}`}
+                                                                            referrerPolicy="no-referrer"
+                                                                            className="w-full h-full object-cover"
+                                                                        />
+                                                                    ) : (
+                                                                        <>
+                                                                            {candidate.firstName?.[0]}
+                                                                            {candidate.lastName?.[0]}
+                                                                        </>
+                                                                    )}
+                                                                </div>
+
+                                                                <div className="flex-1 min-w-0">
+                                                                    <p className="text-white/85 text-sm font-semibold truncate">
+                                                                        {candidate.firstName} {candidate.lastName}
+                                                                    </p>
+
+                                                                    <p className="text-white/35 text-xs truncate">
+                                                                        {candidate.email}
+                                                                    </p>
+                                                                </div>
+
+                                                                <div
+                                                                    className={`w-5 h-5 rounded-md border flex items-center justify-center
+                                                                                ${selected
+                                                                            ? "bg-indigo-500 border-indigo-400"
+                                                                            : "border-white/20"
+                                                                        }`}
+                                                                >
+                                                                    {selected && (
+                                                                        <Check size={12} className="text-white" />
+                                                                    )}
+                                                                </div>
+                                                            </button>
+                                                        );
+                                                    })
+                                                )}
+                                            </div>
+
+                                            {/* Footer */}
+                                            <div className="px-6 py-4 border-t border-white/6 flex items-center justify-between">
+                                                <p className="text-white/35 text-xs">
+                                                    {selectedCandidates.length} selected
+                                                </p>
+
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => setShowAssignModal(false)}
+                                                        className="px-4 py-2 rounded-xl text-xs font-semibold border border-white/10 text-white/60 hover:bg-white/5"
+                                                    >
+                                                        Cancel
+                                                    </button>
+
+                                                    <button
+                                                        onClick={assignCandidatesToDrive}
+                                                        disabled={assignLoading || selectedCandidates.length === 0}
+                                                        className="px-5 py-2 rounded-xl text-xs font-semibold text-white disabled:opacity-50"
+                                                        style={{
+                                                            background:
+                                                                "linear-gradient(135deg,#6366f1,#8b5cf6)",
+                                                        }}
+                                                    >
+                                                        {assignLoading
+                                                            ? "Assigning..."
+                                                            : "Assign Candidates"}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </motion.div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
                     )}
 
                     {tab === "settings" && (
                         <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
                             <div className="w-12 h-12 rounded-2xl flex items-center justify-center"
-                                style={{ background:"rgba(99,102,241,0.1)", border:"1px solid rgba(99,102,241,0.2)" }}>
+                                style={{ background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.2)" }}>
                                 <Lock size={20} className="text-indigo-400" />
                             </div>
                             <p className="text-white font-semibold text-sm">Drive Settings</p>
@@ -607,14 +710,26 @@ const DriveDrawer = ({ drive, onClose }) => {
                     )}
                 </div>
 
-                <div className="sticky bottom-0 px-6 py-4 border-t border-white/6 flex gap-2"
-                    style={{ background:"rgba(10,8,22,0.96)" }}>
-                    <button className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold border border-white/8 text-white/50 hover:bg-white/5 hover:text-white transition">
-                        <Eye size={13} /> Preview
+                <div
+                    className="sticky bottom-0 px-6 py-4 border-t border-white/6 flex gap-2"
+                    style={{ background: "rgba(10,8,22,0.96)" }}
+                >
+                    <button
+                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold border border-rose-500/20 text-rose-300 hover:bg-rose-500/10 hover:border-rose-500/40 transition"
+                    >
+                        <Trash2 size={13} />
+                        Delete Drive
                     </button>
-                    <button className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold text-white transition"
-                        style={{ background:"linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
-                        <Edit3 size={13} /> Edit Drive
+
+                    <button
+                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold text-white transition"
+                        style={{
+                            background:
+                                "linear-gradient(135deg,#6366f1,#8b5cf6)",
+                        }}
+                    >
+                        <Edit3 size={13} />
+                        Edit Drive
                     </button>
                 </div>
             </motion.aside>
@@ -654,7 +769,6 @@ const DriveCard = ({ drive, onClick }) => {
                         {drive.status}
                     </span>
                 </div>
-
                 <div className="grid grid-cols-3 gap-2">
                     {[
                         { label:"Candidates", val:drive.totalCandidates, Icon:Users },
@@ -670,7 +784,6 @@ const DriveCard = ({ drive, onClick }) => {
                         </div>
                     ))}
                 </div>
-
                 <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                         <span className="text-white/30 text-[10px]">Completion</span>
@@ -678,7 +791,6 @@ const DriveCard = ({ drive, onClick }) => {
                     </div>
                     <MiniBar pct={drive.completionRate} color={scoreColor(drive.completionRate)} />
                 </div>
-
                 <div className="flex items-center justify-between">
                     <div className="flex gap-1.5 flex-wrap">
                         <span className="px-2 py-0.5 rounded-md text-[10px] font-bold border"
@@ -702,20 +814,35 @@ const DriveCard = ({ drive, onClick }) => {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 const AdminDrive = () => {
-    const [drives, setDrives]           = useState(INITIAL_DRIVES);
-    const [search, setSearch]           = useState("");
-    const [filterStatus, setStatus]     = useState("All");
-    const [sortBy, setSortBy]           = useState("date");
-    const [viewMode, setViewMode]       = useState("grid");
-    const [selected, setSelected]       = useState(null);
-    const [showCreate, setShowCreate]   = useState(false);
+    const [drives, setDrives]         = useState([]);
+    const [search, setSearch]         = useState("");
+    const [filterStatus, setStatus]   = useState("All");
+    const [sortBy, setSortBy]         = useState("date");
+    const [viewMode, setViewMode]     = useState("grid");
+    const [selected, setSelected]     = useState(null);
+    const [showCreate, setShowCreate] = useState(false);
+    const [loading, setLoading]       = useState(true);
 
     const statuses = ["All","Active","Completed","On-Hold","Draft"];
+
+    useEffect(() => {
+        const fetchDrives = async () => {
+            try {
+                const res = await axios.get("http://localhost:4000/api/drives");
+                setDrives(res.data.drives);
+            } catch (error) {
+                console.log(error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchDrives();
+    }, []);
 
     const filtered = drives
         .filter(d => {
             const q = search.toLowerCase();
-            const matchQ = !q || d.title.toLowerCase().includes(q) || d.tag.toLowerCase().includes(q) || d.tags.some(t=>t.toLowerCase().includes(q));
+            const matchQ = !q || d.title.toLowerCase().includes(q) || d.tag.toLowerCase().includes(q) || (d.tags||[]).some(t=>t.toLowerCase().includes(q));
             return matchQ && (filterStatus==="All" || d.status===filterStatus);
         })
         .sort((a,b) => {
@@ -724,16 +851,30 @@ const AdminDrive = () => {
             return new Date(b.createdAt)-new Date(a.createdAt);
         });
 
-    const active   = drives.filter(d=>d.status==="Active").length;
-    const completed= drives.filter(d=>d.status==="Completed").length;
-    const cands    = drives.reduce((s,d)=>s+d.totalCandidates,0);
-    const scored   = drives.filter(d=>d.avgScore>0);
-    const avg      = scored.length ? Math.round(scored.reduce((s,d)=>s+d.avgScore,0)/scored.length) : 0;
+    const active    = drives.filter(d=>d.status==="Active").length;
+    const completed = drives.filter(d=>d.status==="Completed").length;
+    const cands     = drives.reduce((s,d)=>s+d.totalCandidates,0);
+    const scored    = drives.filter(d=>d.avgScore>0);
+    const avg       = scored.length ? Math.round(scored.reduce((s,d)=>s+d.avgScore,0)/scored.length) : 0;
+
+    const exportCSV = () => {
+        const headers = ["Drive Name","Type","Status","Candidates","Attempted","Average Score","Top Score","Completion Rate","Duration","Questions","Difficulty","Visibility","Created Date"];
+        const rows = filtered.map(d=>[d.title,d.type,d.status,d.totalCandidates,d.attempted,d.avgScore,d.topScore,`${d.completionRate}%`,`${d.duration} min`,d.questionCount,d.difficulty,d.visibility,fmt(d.createdAt)]);
+        const csvContent = [headers.join(","),...rows.map(row=>row.map(f=>`"${f}"`).join(","))].join("\n");
+        const blob = new Blob([csvContent],{type:"text/csv;charset=utf-8;"});
+        const url  = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href  = url;
+        link.setAttribute("download",`drives_${Date.now()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
 
     return (
         <>
             <div className="w-full flex flex-col space-y-4">
-
                 <div className="flex items-start justify-between">
                     <div>
                         <div className="flex items-center gap-2 mb-1">
@@ -795,7 +936,7 @@ const AdminDrive = () => {
                     <div className="relative">
                         <select value={sortBy} onChange={e=>setSortBy(e.target.value)}
                             className="appearance-none pl-8 pr-8 py-2.5 rounded-xl text-xs text-white/60 border border-white/6 outline-none cursor-pointer"
-                            style={{ background:"rgba(255,255,255,0.04)" }}>
+                            style={{ background:"rgba(255,255,255,0.04)", colorScheme:"dark" }}>
                             <option value="date">Sort: Date</option>
                             <option value="score">Sort: Avg Score</option>
                             <option value="candidates">Sort: Candidates</option>
@@ -817,7 +958,11 @@ const AdminDrive = () => {
                     {viewMode==="grid" ? (
                         <motion.div key="grid" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
                             className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                            {filtered.length===0
+                            {loading ? (
+                                <div className="col-span-full flex justify-center py-20">
+                                    <div className="w-10 h-10 rounded-full border-2 border-indigo-500/30 border-t-indigo-400 animate-spin" />
+                                </div>
+                            ) : filtered.length === 0
                                 ? <div className="col-span-full flex flex-col items-center py-16 text-white/20 gap-2"><AlertCircle size={28}/><p className="text-sm">No drives match your filters.</p></div>
                                 : filtered.map(d=><DriveCard key={d._id} drive={d} onClick={()=>setSelected(d)}/>)}
                         </motion.div>
@@ -891,8 +1036,8 @@ const AdminDrive = () => {
                             </table>
                             <div className="px-5 py-3 border-t border-white/5 flex items-center justify-between">
                                 <p className="text-white/25 text-[11px]">Showing {filtered.length} of {drives.length} drives</p>
-                                <button className="text-indigo-400 text-[11px] hover:text-indigo-300 flex items-center gap-1 transition">
-                                    Export CSV <Download size={11}/>
+                                <button onClick={exportCSV} className="text-indigo-400 text-[11px] hover:text-indigo-300 flex items-center gap-1 transition">
+                                    Export CSV <Download size={11} />
                                 </button>
                             </div>
                         </motion.div>
