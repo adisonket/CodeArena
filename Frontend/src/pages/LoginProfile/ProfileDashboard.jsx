@@ -13,6 +13,8 @@ const COLORS = {
   cardDark: "#1F2937",
   grayMuted: "#A1A1AA",
   green: "#22C55E",
+  amber: "#f59e0b",
+  red: "#f87171",
 };
 
 const EMPTY_EDU = {
@@ -57,7 +59,7 @@ function Toast({ message, type = "success", onDone }) {
     const t = setTimeout(onDone, 2800);
     return () => clearTimeout(t);
   }, []);
-  const color = type === "error" ? "#f87171" : COLORS.green;
+  const color = type === "error" ? COLORS.red : COLORS.green;
   return (
     <div style={{
       position: "fixed", bottom: 28, right: 28,
@@ -123,29 +125,30 @@ function SectionHeader({ title, subtitle, editing, saving, onToggle }) {
   );
 }
 
-function EditableInput({ label, value, editing, onChange, textarea }) {
+function EditableInput({ label, value, editing, onChange, textarea, type = "text", readOnly = false }) {
   const base = {
     width: "100%", borderRadius: 10, padding: "9px 12px",
     fontSize: 13, fontFamily: "'DM Sans',sans-serif",
     outline: "none", resize: "none", transition: "all 0.2s",
-    boxSizing: "border-box", color: editing ? "#fff" : "#e2e8f0",
-    background: editing ? `${COLORS.midPurple}55` : "transparent",
-    border: editing ? `1.5px solid ${COLORS.accent}88` : "1.5px solid transparent",
-    boxShadow: editing ? `0 0 0 3px ${COLORS.accent}18` : "none",
+    boxSizing: "border-box", color: (editing && !readOnly) ? "#fff" : "#e2e8f0",
+    background: (editing && !readOnly) ? `${COLORS.midPurple}55` : "transparent",
+    border: (editing && !readOnly) ? `1.5px solid ${COLORS.accent}88` : "1.5px solid transparent",
+    boxShadow: (editing && !readOnly) ? `0 0 0 3px ${COLORS.accent}18` : "none",
+    cursor: readOnly ? "default" : "text",
   };
   return (
     <div style={{ marginBottom: 4 }}>
       <label style={{
         fontSize: 10, display: "block", marginBottom: 5, letterSpacing: 1,
         textTransform: "uppercase", fontFamily: "'Space Mono',monospace",
-        color: editing ? COLORS.accent : COLORS.grayMuted, transition: "color 0.2s",
+        color: (editing && !readOnly) ? COLORS.accent : COLORS.grayMuted, transition: "color 0.2s",
       }}>
         {label}
-        {editing && <span style={{ marginLeft: 6, opacity: 0.6, fontSize: 9 }}>✎</span>}
+        {editing && !readOnly && <span style={{ marginLeft: 6, opacity: 0.6, fontSize: 9 }}>✎</span>}
       </label>
       {textarea
-        ? <textarea rows={3} style={base} value={value} readOnly={!editing} onChange={e => onChange(e.target.value)} />
-        : <input style={base} value={value} readOnly={!editing} onChange={e => onChange(e.target.value)} />
+        ? <textarea rows={3} style={base} value={value} readOnly={!editing || readOnly} onChange={e => onChange && onChange(e.target.value)} />
+        : <input type={type} style={base} value={value} readOnly={!editing || readOnly} onChange={e => onChange && onChange(e.target.value)} />
       }
     </div>
   );
@@ -309,13 +312,13 @@ function EduCard({ edu, editing, onFieldChange, onDocUpload, onRemoveDoc, upload
             <span style={{ color: COLORS.green, fontFamily: "'Space Mono',monospace", fontSize: 11, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.name}</span>
             <span style={{ fontSize: 10, color: COLORS.grayMuted, flexShrink: 0 }}>{d.size}</span>
             {editing && (
-              <button onClick={() => onRemoveDoc(edu._id ? String(edu._id) : edu.tempId, d._id, i)} style={{ background: "none", border: "none", color: "#f87171", cursor: "pointer", fontSize: 12, padding: 0, flexShrink: 0 }}>✕</button>
+              <button onClick={() => onRemoveDoc(edu._id ? String(edu._id) : edu.tempId, d._id, i)} style={{ background: "none", border: "none", color: COLORS.red, cursor: "pointer", fontSize: 12, padding: 0, flexShrink: 0 }}>✕</button>
             )}
           </div>
         ))}
         {editing && edu.docs.length === 0 && (
-          <label style={{ display: "flex", alignItems: "center", gap: 8, border: `2px dashed ${COLORS.accent}66`, borderRadius: 10, padding: "9px 14px", cursor: uploadingDocId === edu._id ? String(edu._id) : edu.tempId ? "not-allowed" : "pointer", fontSize: 12, color: COLORS.grayMuted, marginTop: 4, transition: "border 0.2s", opacity: uploadingDocId === (edu._id ? String(edu._id) : edu.tempId) ? 0.6 : 1 }}>
-            {uploadingDocId === edu._id ? String(edu._id) : edu.tempId
+          <label style={{ display: "flex", alignItems: "center", gap: 8, border: `2px dashed ${COLORS.accent}66`, borderRadius: 10, padding: "9px 14px", cursor: uploadingDocId === (edu._id ? String(edu._id) : edu.tempId) ? "not-allowed" : "pointer", fontSize: 12, color: COLORS.grayMuted, marginTop: 4, transition: "border 0.2s", opacity: uploadingDocId === (edu._id ? String(edu._id) : edu.tempId) ? 0.6 : 1 }}>
+            {uploadingDocId === (edu._id ? String(edu._id) : edu.tempId)
               ? <><Spinner /><span style={{ color: COLORS.accent, fontFamily: "'Space Mono',monospace", fontSize: 11 }}>Uploading...</span></>
               : <><span style={{ color: COLORS.accent, fontFamily: "'Space Mono',monospace", fontSize: 11 }}>↑ Upload PDF</span><span style={{ marginLeft: "auto", fontSize: 10 }}>PDF only</span></>
             }
@@ -347,19 +350,13 @@ function EducationSection({ initialData, onSaved }) {
     setEduList(prev => prev.map(ed => (String(ed._id) === id || ed.tempId === id) ? { ...ed, [field]: val } : ed));
   };
 
-  // For new (unsaved) edu entries: upload doc locally, will be saved on Save
-  // For existing entries: upload immediately to backend
   const handleDocUpload = async (id, e) => {
     const file = e.target.files[0];
     if (!file) return;
     e.target.value = "";
     const edu = eduList.find(ed => String(ed._id) === id || ed.tempId === id);
-    console.log("id received:", id);
-    console.log("eduList entries:", eduList.map(ed => ({ _id: String(ed._id), tempId: ed.tempId })));
-    console.log("found edu:", edu);
-    if (!edu) return; // ← prevents the crash
+    if (!edu) return;
 
-    // If this edu entry exists in DB (has a real _id), upload immediately
     if (edu._id) {
       setUploadingDocId(id);
       try {
@@ -380,7 +377,6 @@ function EducationSection({ initialData, onSaved }) {
         setUploadingDocId(null);
       }
     } else {
-      // New edu not yet saved — store file reference locally (show name/size preview)
       const preview = { name: file.name, size: `${Math.round(file.size / 1024)} KB`, _file: file };
       setEduList(prev => prev.map(ed => ed.tempId === id ? { ...ed, docs: [...ed.docs, preview] } : ed));
     }
@@ -388,15 +384,13 @@ function EducationSection({ initialData, onSaved }) {
 
   const handleRemoveDoc = async (eduId, docId, docIndex) => {
     const edu = eduList.find(ed => String(ed._id) === eduId || ed.tempId === eduId);
-
-    // If the doc is persisted in DB
     if (edu._id && docId) {
       try {
         await fetch(`${API}/profile/education/${edu._id}/doc/${docId}`, {
           method: "DELETE",
           headers: authHeader(),
         });
-      } catch (err) { /* silent */ }
+      } catch { /* silent */ }
     }
     setEduList(prev => prev.map(ed =>
       (String(ed._id) === eduId || ed.tempId === eduId)
@@ -408,7 +402,6 @@ function EducationSection({ initialData, onSaved }) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Strip local _file references before sending to API
       const clean = eduList.map(({ tempId, ...ed }) => ({
         ...ed,
         docs: ed.docs.filter(d => !d._file).map(({ _file, ...d }) => d),
@@ -459,6 +452,8 @@ function ResumeSection({ initialData, onSaved }) {
   const [resume, setResume] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState(null);
 
   useEffect(() => {
     if (initialData?.resumeUrl) {
@@ -470,6 +465,7 @@ function ResumeSection({ initialData, onSaved }) {
     const f = e.target.files[0];
     if (!f) return;
     setUploading(true);
+    setAnalysis(null);
     try {
       const form = new FormData();
       form.append("resume", f);
@@ -494,62 +490,421 @@ function ResumeSection({ initialData, onSaved }) {
     try {
       await fetch(`${API}/profile/resume`, { method: "DELETE", headers: authHeader() });
       setResume(null);
+      setAnalysis(null);
       onSaved && onSaved();
     } catch { /* silent */ }
   };
 
+  const handleAnalyze = async () => {
+    setAnalyzing(true);
+    setAnalysis(null);
+    try {
+      const res = await fetch(`${API}/profile/resume/analyze`, {
+        method: "POST",
+        headers: authHeader(),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.message);
+      setAnalysis(json.analysis);
+    } catch (err) {
+      setToast({ msg: err.message || "Analysis failed", type: "error" });
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const ScoreRing = ({ score, size = 64, label }) => {
+    const r = (size / 2) - 6;
+    const circ = 2 * Math.PI * r;
+    const dash = (score / 100) * circ;
+    const color = score >= 75 ? COLORS.green : score >= 50 ? COLORS.accent : COLORS.amber;
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+        <svg width={size} height={size}>
+          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={`${color}22`} strokeWidth={5} />
+          <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={5}
+            strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
+            transform={`rotate(-90 ${size/2} ${size/2})`} />
+          <text x="50%" y="50%" dominantBaseline="central" textAnchor="middle"
+            fill={color} fontSize={size * 0.22} fontFamily="'Space Mono',monospace" fontWeight="700">
+            {score}
+          </text>
+        </svg>
+        {label && <span style={{ fontSize: 10, color: COLORS.grayMuted, fontFamily: "'Space Mono',monospace" }}>{label}</span>}
+      </div>
+    );
+  };
+
   return (
     <>
-      <SectionCard>
-        <div style={{ marginBottom: 20 }}>
-          <h2 style={{ fontFamily: "'Space Mono',monospace", fontSize: 16, fontWeight: 700, margin: 0 }}>Resume</h2>
-          <p style={{ fontSize: 12, color: COLORS.grayMuted, marginTop: 4 }}>Upload your latest resume for interviewers to review</p>
-        </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <SectionCard>
+          <div style={{ marginBottom: 20 }}>
+            <h2 style={{ fontFamily: "'Space Mono',monospace", fontSize: 16, fontWeight: 700, margin: 0 }}>Resume</h2>
+            <p style={{ fontSize: 12, color: COLORS.grayMuted, marginTop: 4 }}>Upload your latest resume for interviewers to review</p>
+          </div>
 
-        {!resume ? (
-          <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", border: `2px dashed ${COLORS.midPurple}`, borderRadius: 16, padding: "48px 24px", cursor: uploading ? "not-allowed" : "pointer", transition: "all 0.2s", opacity: uploading ? 0.7 : 1 }}
-            onMouseEnter={e => { if (!uploading) { e.currentTarget.style.borderColor = COLORS.accent; e.currentTarget.style.background = `${COLORS.accent}08`; } }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = COLORS.midPurple; e.currentTarget.style.background = "transparent"; }}>
-            {uploading
-              ? <><Spinner /><p style={{ fontFamily: "'Space Mono',monospace", fontSize: 12, color: COLORS.accent, marginTop: 12 }}>Uploading...</p></>
-              : <>
-                <div style={{ width: 56, height: 56, borderRadius: 14, background: `${COLORS.midPurple}88`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16, fontSize: 24 }}>📄</div>
-                <p style={{ fontFamily: "'Space Mono',monospace", fontSize: 13, color: "#fff", margin: 0 }}>Drag & drop your resume</p>
-                <p style={{ fontSize: 12, color: COLORS.grayMuted, marginTop: 6 }}>or <span style={{ color: COLORS.accent }}>browse to upload</span></p>
-                <p style={{ fontSize: 10, color: COLORS.grayMuted, marginTop: 10, fontFamily: "'Space Mono',monospace" }}>PDF, DOCX up to 5MB</p>
-              </>
+          {!resume ? (
+            <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", border: `2px dashed ${COLORS.midPurple}`, borderRadius: 16, padding: "48px 24px", cursor: uploading ? "not-allowed" : "pointer", transition: "all 0.2s", opacity: uploading ? 0.7 : 1 }}
+              onMouseEnter={e => { if (!uploading) { e.currentTarget.style.borderColor = COLORS.accent; e.currentTarget.style.background = `${COLORS.accent}08`; } }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = COLORS.midPurple; e.currentTarget.style.background = "transparent"; }}>
+              {uploading
+                ? <><Spinner /><p style={{ fontFamily: "'Space Mono',monospace", fontSize: 12, color: COLORS.accent, marginTop: 12 }}>Uploading...</p></>
+                : <>
+                  <div style={{ width: 56, height: 56, borderRadius: 14, background: `${COLORS.midPurple}88`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16, fontSize: 24 }}>📄</div>
+                  <p style={{ fontFamily: "'Space Mono',monospace", fontSize: 13, color: "#fff", margin: 0 }}>Drag & drop your resume</p>
+                  <p style={{ fontSize: 12, color: COLORS.grayMuted, marginTop: 6 }}>or <span style={{ color: COLORS.accent }}>browse to upload</span></p>
+                  <p style={{ fontSize: 10, color: COLORS.grayMuted, marginTop: 10, fontFamily: "'Space Mono',monospace" }}>PDF, DOCX up to 5MB</p>
+                </>
+              }
+              <input type="file" style={{ display: "none" }} accept=".pdf,.docx" onChange={handleFile} disabled={uploading} />
+            </label>
+          ) : (
+            <div style={{ border: `1px solid ${COLORS.green}44`, borderRadius: 14, padding: 16, background: `${COLORS.cardDark}88`, display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={{ width: 42, height: 42, borderRadius: 10, background: `${COLORS.green}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>📄</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontFamily: "'Space Mono',monospace", fontSize: 12, color: "#fff", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{resume.name}</p>
+                {resume.size && <p style={{ fontSize: 11, color: COLORS.grayMuted, marginTop: 3 }}>{resume.size}</p>}
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <label style={{ fontSize: 11, color: COLORS.accent, fontFamily: "'Space Mono',monospace", border: `1px solid ${COLORS.accent}44`, padding: "4px 12px", borderRadius: 8, cursor: "pointer" }}>
+                  Replace <input type="file" style={{ display: "none" }} accept=".pdf,.docx" onChange={handleFile} />
+                </label>
+                <button onClick={handleDelete} style={{ fontSize: 11, color: COLORS.red, fontFamily: "'Space Mono',monospace", border: `1px solid ${COLORS.red}44`, padding: "4px 12px", borderRadius: 8, background: "none", cursor: "pointer" }}>Remove</button>
+              </div>
+            </div>
+          )}
+
+          <div style={{ marginTop: 20, padding: 16, borderRadius: 12, background: `${COLORS.accent}0D`, border: `1px solid ${COLORS.accent}22` }}>
+            <p style={{ fontSize: 10, color: COLORS.accent, fontFamily: "'Space Mono',monospace", letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>Resume Tips</p>
+            {["Keep your resume to 1–2 pages maximum", "Highlight projects, GitHub links, and measurable results", "Use consistent formatting and clear section headers", "Our AI will analyze your resume and suggest improvements"].map((tip, i) => (
+              <p key={i} style={{ fontSize: 12, color: COLORS.grayMuted, margin: "0 0 6px" }}>
+                <span style={{ color: COLORS.accent }}>▸ </span>{tip}
+              </p>
+            ))}
+          </div>
+
+          <button
+            onClick={handleAnalyze}
+            disabled={!resume || analyzing}
+            style={{
+              width: "100%", marginTop: 16, padding: "13px 0", borderRadius: 12,
+              background: !resume ? `${COLORS.midPurple}55` : `linear-gradient(90deg, ${COLORS.accent}, ${COLORS.midPurple})`,
+              color: !resume ? COLORS.grayMuted : "#fff",
+              fontFamily: "'Space Mono',monospace", fontSize: 13, fontWeight: 700,
+              border: "none", cursor: !resume ? "not-allowed" : analyzing ? "wait" : "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              opacity: analyzing ? 0.8 : 1, transition: "all 0.2s",
+            }}>
+            {analyzing ? <><Spinner /> Analyzing with AI...</> : "✦ Analyze Resume with AI"}
+          </button>
+        </SectionCard>
+
+        {analysis && (
+          <SectionCard>
+            <div style={{ marginBottom: 20 }}>
+              <h2 style={{ fontFamily: "'Space Mono',monospace", fontSize: 16, fontWeight: 700, margin: 0 }}>AI Analysis Results</h2>
+              <p style={{ fontSize: 12, color: COLORS.grayMuted, marginTop: 4 }}>Powered by AI — tap Analyze again to refresh</p>
+            </div>
+            <div style={{ display: "flex", gap: 20, justifyContent: "center", marginBottom: 24, padding: 20, background: `${COLORS.midPurple}33`, borderRadius: 14 }}>
+              <ScoreRing score={analysis.overallScore} size={80} label="Overall" />
+              <ScoreRing score={analysis.atsScore} size={80} label="ATS Score" />
+            </div>
+            <div style={{ marginBottom: 20, padding: 14, background: `${COLORS.accent}0D`, border: `1px solid ${COLORS.accent}22`, borderRadius: 12 }}>
+              <p style={{ fontSize: 12, color: "#e2e8f0", lineHeight: 1.7, margin: 0 }}>{analysis.summary}</p>
+            </div>
+            <div style={{ marginBottom: 20 }}>
+              <p style={{ fontSize: 10, color: COLORS.accent, fontFamily: "'Space Mono',monospace", letterSpacing: 1, textTransform: "uppercase", marginBottom: 12 }}>Section Breakdown</p>
+              {Object.entries(analysis.sections || {}).map(([key, score]) => {
+                const color = score >= 75 ? COLORS.green : score >= 50 ? COLORS.accent : COLORS.amber;
+                return (
+                  <div key={key} style={{ marginBottom: 10 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                      <span style={{ fontSize: 12, color: "#e2e8f0", textTransform: "capitalize" }}>{key}</span>
+                      <span style={{ fontSize: 11, color, fontFamily: "'Space Mono',monospace", fontWeight: 700 }}>{score}/100</span>
+                    </div>
+                    <div style={{ height: 4, borderRadius: 99, background: COLORS.midPurple }}>
+                      <div style={{ width: `${score}%`, height: "100%", background: color, borderRadius: 99, transition: "width 0.5s ease" }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+              <div style={{ padding: 14, background: `${COLORS.green}0D`, border: `1px solid ${COLORS.green}22`, borderRadius: 12 }}>
+                <p style={{ fontSize: 10, color: COLORS.green, fontFamily: "'Space Mono',monospace", letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>Strengths</p>
+                {(analysis.strengths || []).map((s, i) => (
+                  <p key={i} style={{ fontSize: 12, color: "#e2e8f0", margin: "0 0 6px" }}><span style={{ color: COLORS.green }}>✓ </span>{s}</p>
+                ))}
+              </div>
+              <div style={{ padding: 14, background: `${COLORS.amber}0D`, border: `1px solid ${COLORS.amber}22`, borderRadius: 12 }}>
+                <p style={{ fontSize: 10, color: COLORS.amber, fontFamily: "'Space Mono',monospace", letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>Improvements</p>
+                {(analysis.improvements || []).map((item, i) => (
+                  <div key={i} style={{ marginBottom: 8 }}>
+                    <p style={{ fontSize: 12, color: COLORS.amber, margin: "0 0 2px", fontWeight: 600 }}>▸ {item.issue}</p>
+                    <p style={{ fontSize: 11, color: COLORS.grayMuted, margin: 0 }}>{item.detail}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {(analysis.atsTips || []).length > 0 && (
+              <div style={{ marginBottom: 20, padding: 14, background: `${COLORS.cardDark}88`, border: `1px solid ${COLORS.midPurple}`, borderRadius: 12 }}>
+                <p style={{ fontSize: 10, color: COLORS.accent, fontFamily: "'Space Mono',monospace", letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>ATS Optimisation Tips</p>
+                {analysis.atsTips.map((tip, i) => (
+                  <p key={i} style={{ fontSize: 12, color: COLORS.grayMuted, margin: "0 0 6px" }}><span style={{ color: COLORS.accent }}>▸ </span>{tip}</p>
+                ))}
+              </div>
+            )}
+            {(analysis.missingKeywords || []).length > 0 && (
+              <div>
+                <p style={{ fontSize: 10, color: COLORS.accent, fontFamily: "'Space Mono',monospace", letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>Suggested Keywords to Add</p>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {analysis.missingKeywords.map((kw, i) => (
+                    <span key={i} style={{ background: `${COLORS.accent}15`, color: COLORS.accent, fontFamily: "'Space Mono',monospace", fontSize: 11, padding: "4px 12px", borderRadius: 99, border: `1px solid ${COLORS.accent}33` }}>+ {kw}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </SectionCard>
+        )}
+      </div>
+      {toast && <Toast message={toast.msg} type={toast.type} onDone={() => setToast(null)} />}
+    </>
+  );
+}
+
+// ── KYC Doc Upload Widget ─────────────────────────────────────────────────────
+function KycDocWidget({ label, docData, fieldName, editing, uploading, onUpload }) {
+  const hasDoc = docData?.name && docData?.path;
+  return (
+    <div style={{ marginBottom: 4 }}>
+      <label style={{ fontSize: 10, display: "block", marginBottom: 8, letterSpacing: 1, textTransform: "uppercase", fontFamily: "'Space Mono',monospace", color: editing ? COLORS.accent : COLORS.grayMuted }}>
+        {label} Document <span style={{ fontSize: 9, textTransform: "none", letterSpacing: 0, color: COLORS.grayMuted }}>(JPG, PNG, PDF)</span>
+      </label>
+      {hasDoc ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, background: `${COLORS.green}0D`, border: `1px solid ${COLORS.green}33`, borderRadius: 10, padding: "9px 14px" }}>
+          <span style={{ fontSize: 16 }}>{docData.name.endsWith(".pdf") ? "📄" : "🖼️"}</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontFamily: "'Space Mono',monospace", fontSize: 11, color: COLORS.green, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{docData.name}</p>
+            {docData.size && <p style={{ fontSize: 10, color: COLORS.grayMuted, margin: "2px 0 0" }}>{docData.size}</p>}
+          </div>
+          {editing && (
+            <label style={{ fontSize: 11, color: COLORS.accent, fontFamily: "'Space Mono',monospace", border: `1px solid ${COLORS.accent}44`, padding: "4px 10px", borderRadius: 7, cursor: uploading === fieldName ? "not-allowed" : "pointer", flexShrink: 0 }}>
+              {uploading === fieldName ? <Spinner /> : "Replace"}
+              <input type="file" style={{ display: "none" }} accept=".jpg,.jpeg,.png,.pdf" onChange={e => onUpload(fieldName, e)} disabled={uploading === fieldName} />
+            </label>
+          )}
+        </div>
+      ) : (
+        editing ? (
+          <label style={{ display: "flex", alignItems: "center", gap: 8, border: `2px dashed ${uploading === fieldName ? COLORS.accent : `${COLORS.accent}55`}`, borderRadius: 10, padding: "10px 14px", cursor: uploading === fieldName ? "not-allowed" : "pointer", opacity: uploading === fieldName ? 0.7 : 1, transition: "all 0.2s" }}>
+            {uploading === fieldName
+              ? <><Spinner /><span style={{ fontSize: 11, color: COLORS.accent, fontFamily: "'Space Mono',monospace" }}>Uploading...</span></>
+              : <><span style={{ fontSize: 18 }}>↑</span><span style={{ fontSize: 11, color: COLORS.accent, fontFamily: "'Space Mono',monospace" }}>Upload {label} Document</span><span style={{ marginLeft: "auto", fontSize: 10, color: COLORS.grayMuted }}>JPG, PNG, PDF</span></>
             }
-            <input type="file" style={{ display: "none" }} accept=".pdf,.docx" onChange={handleFile} disabled={uploading} />
+            <input type="file" style={{ display: "none" }} accept=".jpg,.jpeg,.png,.pdf" onChange={e => onUpload(fieldName, e)} disabled={uploading === fieldName} />
           </label>
         ) : (
-          <div style={{ border: `1px solid ${COLORS.green}44`, borderRadius: 14, padding: 16, background: `${COLORS.cardDark}88`, display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{ width: 42, height: 42, borderRadius: 10, background: `${COLORS.green}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>📄</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontFamily: "'Space Mono',monospace", fontSize: 12, color: "#fff", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{resume.name}</p>
-              {resume.size && <p style={{ fontSize: 11, color: COLORS.grayMuted, marginTop: 3 }}>{resume.size}</p>}
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <label style={{ fontSize: 11, color: COLORS.accent, fontFamily: "'Space Mono',monospace", border: `1px solid ${COLORS.accent}44`, padding: "4px 12px", borderRadius: 8, cursor: "pointer" }}>
-                Replace <input type="file" style={{ display: "none" }} accept=".pdf,.docx" onChange={handleFile} />
-              </label>
-              <button onClick={handleDelete} style={{ fontSize: 11, color: "#f87171", fontFamily: "'Space Mono',monospace", border: "1px solid #f8717144", padding: "4px 12px", borderRadius: 8, background: "none", cursor: "pointer" }}>Remove</button>
+          <div style={{ border: `1px dashed ${COLORS.midPurple}`, borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 16 }}>📂</span>
+            <span style={{ fontSize: 12, color: COLORS.grayMuted }}>No document uploaded yet</span>
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
+// ── KYC & Address Section ─────────────────────────────────────────────────────
+function KycSection({ initialData, onSaved }) {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [uploadingDoc, setUploadingDoc] = useState(null); // "aadhaar" | "pan" | null
+  const [toast, setToast] = useState(null);
+
+  const [data, setData] = useState({
+    dob: "", nationality: "",
+    state: "", district: "", pin: "", locality: "", postOffice: "",
+    aadhaarNumber: "", panNumber: "",
+  });
+  const [aadhaarDoc, setAadhaarDoc] = useState(null);
+  const [panDoc, setPanDoc] = useState(null);
+
+  useEffect(() => {
+    if (initialData) {
+      setData({
+        dob: initialData.dob || "",
+        nationality: initialData.nationality || "",
+        state: initialData.address?.state || "",
+        district: initialData.address?.district || "",
+        pin: initialData.address?.pin || "",
+        locality: initialData.address?.locality || "",
+        postOffice: initialData.address?.postOffice || "",
+        aadhaarNumber: initialData.aadhaarNumber || "",
+        panNumber: initialData.panNumber || "",
+      });
+      setAadhaarDoc(initialData.aadhaarDoc?.name ? initialData.aadhaarDoc : null);
+      setPanDoc(initialData.panDoc?.name ? initialData.panDoc : null);
+    }
+  }, [initialData]);
+
+  const set = key => val => setData(d => ({ ...d, [key]: val }));
+
+  // Save all text fields via completeSetup (reuses backend logic)
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const form = new FormData();
+      // personal/kyc fields
+      ["dob", "nationality", "aadhaarNumber", "panNumber"].forEach(k => form.append(k, data[k]));
+      // address fields
+      ["state", "district", "pin", "locality", "postOffice"].forEach(k => form.append(k, data[k]));
+
+      const res = await fetch(`${API}/profile/complete-setup`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        body: form,
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.message);
+      setEditing(false);
+      setToast({ msg: "KYC & Address saved!", type: "success" });
+      onSaved && onSaved();
+    } catch (err) {
+      setToast({ msg: err.message || "Save failed", type: "error" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Upload a single KYC doc immediately (using complete-setup multipart)
+  const handleDocUpload = async (field, e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    e.target.value = "";
+    setUploadingDoc(field);
+    try {
+      const form = new FormData();
+      form.append(field, file);
+      const res = await fetch(`${API}/profile/complete-setup`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        body: form,
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.message);
+      const docInfo = { name: file.name, size: `${Math.round(file.size / 1024)} KB`, path: `/uploads/kyc/${file.name}` };
+      if (field === "aadhaar") setAadhaarDoc(docInfo);
+      if (field === "pan") setPanDoc(docInfo);
+      setToast({ msg: `${field === "aadhaar" ? "Aadhaar" : "PAN"} document uploaded!`, type: "success" });
+      onSaved && onSaved();
+    } catch (err) {
+      setToast({ msg: err.message || "Upload failed", type: "error" });
+    } finally {
+      setUploadingDoc(null);
+    }
+  };
+
+  const maskNumber = (val) => {
+    if (!val || editing) return val;
+    if (val.length <= 4) return val;
+    return "•".repeat(val.length - 4) + val.slice(-4);
+  };
+
+  return (
+    <>
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+
+        {/* ── Personal Identity ── */}
+        <SectionCard editing={editing}>
+          {editing && <EditBanner />}
+          <SectionHeader title="KYC & Address" subtitle="Identity verification and residential details"
+            editing={editing} saving={saving} onToggle={() => editing ? handleSave() : setEditing(true)} />
+
+          {/* DOB & Nationality */}
+          <p style={{ fontSize: 10, color: COLORS.accent, fontFamily: "'Space Mono',monospace", letterSpacing: 1, textTransform: "uppercase", marginBottom: 12, marginTop: 0 }}>Personal Identity</p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px", marginBottom: 20 }}>
+            <EditableInput label="Date of Birth" value={data.dob} editing={editing} onChange={set("dob")} type="date" />
+            <EditableInput label="Nationality" value={data.nationality} editing={editing} onChange={set("nationality")} />
+          </div>
+
+          {/* Address */}
+          <div style={{ borderTop: `1px solid ${COLORS.midPurple}55`, paddingTop: 20, marginBottom: 20 }}>
+            <p style={{ fontSize: 10, color: COLORS.accent, fontFamily: "'Space Mono',monospace", letterSpacing: 1, textTransform: "uppercase", marginBottom: 12, marginTop: 0 }}>Residential Address</p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
+              <EditableInput label="State" value={data.state} editing={editing} onChange={set("state")} />
+              <EditableInput label="District" value={data.district} editing={editing} onChange={set("district")} />
+              <EditableInput label="PIN Code" value={data.pin} editing={editing} onChange={set("pin")} />
+              <EditableInput label="Post Office" value={data.postOffice} editing={editing} onChange={set("postOffice")} />
+              <div style={{ gridColumn: "1 / -1" }}>
+                <EditableInput label="Locality / Area" value={data.locality} editing={editing} onChange={set("locality")} />
+              </div>
             </div>
           </div>
-        )}
 
-        <div style={{ marginTop: 20, padding: 16, borderRadius: 12, background: `${COLORS.accent}0D`, border: `1px solid ${COLORS.accent}22` }}>
-          <p style={{ fontSize: 10, color: COLORS.accent, fontFamily: "'Space Mono',monospace", letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>Resume Tips</p>
-          {["Keep your resume to 1–2 pages maximum", "Highlight projects, GitHub links, and measurable results", "Use consistent formatting and clear section headers", "Our AI will analyze your resume and suggest improvements"].map((tip, i) => (
-            <p key={i} style={{ fontSize: 12, color: COLORS.grayMuted, margin: "0 0 6px" }}>
-              <span style={{ color: COLORS.accent }}>▸ </span>{tip}
-            </p>
-          ))}
-        </div>
+          {/* KYC Numbers */}
+          <div style={{ borderTop: `1px solid ${COLORS.midPurple}55`, paddingTop: 20, marginBottom: 20 }}>
+            <p style={{ fontSize: 10, color: COLORS.accent, fontFamily: "'Space Mono',monospace", letterSpacing: 1, textTransform: "uppercase", marginBottom: 4, marginTop: 0 }}>KYC Numbers</p>
+            <p style={{ fontSize: 11, color: COLORS.grayMuted, marginBottom: 14, marginTop: 0 }}>Sensitive fields are masked when not in edit mode.</p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
+              <div>
+                <label style={{ fontSize: 10, display: "block", marginBottom: 5, letterSpacing: 1, textTransform: "uppercase", fontFamily: "'Space Mono',monospace", color: editing ? COLORS.accent : COLORS.grayMuted }}>
+                  Aadhaar Number {editing && <span style={{ opacity: 0.6, fontSize: 9 }}>✎</span>}
+                </label>
+                <input
+                  style={{ width: "100%", borderRadius: 10, padding: "9px 12px", fontSize: 13, fontFamily: "'DM Sans',sans-serif", outline: "none", transition: "all 0.2s", boxSizing: "border-box", color: editing ? "#fff" : "#e2e8f0", background: editing ? `${COLORS.midPurple}55` : "transparent", border: editing ? `1.5px solid ${COLORS.accent}88` : "1.5px solid transparent", boxShadow: editing ? `0 0 0 3px ${COLORS.accent}18` : "none", letterSpacing: editing ? "normal" : "2px" }}
+                  value={editing ? data.aadhaarNumber : maskNumber(data.aadhaarNumber)}
+                  readOnly={!editing}
+                  onChange={e => set("aadhaarNumber")(e.target.value)}
+                  maxLength={12}
+                  placeholder={editing ? "12-digit Aadhaar number" : ""}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 10, display: "block", marginBottom: 5, letterSpacing: 1, textTransform: "uppercase", fontFamily: "'Space Mono',monospace", color: editing ? COLORS.accent : COLORS.grayMuted }}>
+                  PAN Number {editing && <span style={{ opacity: 0.6, fontSize: 9 }}>✎</span>}
+                </label>
+                <input
+                  style={{ width: "100%", borderRadius: 10, padding: "9px 12px", fontSize: 13, fontFamily: "'DM Sans',sans-serif", outline: "none", transition: "all 0.2s", boxSizing: "border-box", color: editing ? "#fff" : "#e2e8f0", background: editing ? `${COLORS.midPurple}55` : "transparent", border: editing ? `1.5px solid ${COLORS.accent}88` : "1.5px solid transparent", boxShadow: editing ? `0 0 0 3px ${COLORS.accent}18` : "none", letterSpacing: editing ? "normal" : "2px", textTransform: "uppercase" }}
+                  value={editing ? data.panNumber : maskNumber(data.panNumber)}
+                  readOnly={!editing}
+                  onChange={e => set("panNumber")(e.target.value.toUpperCase())}
+                  maxLength={10}
+                  placeholder={editing ? "10-character PAN" : ""}
+                />
+              </div>
+            </div>
+          </div>
 
-        <button style={{ width: "100%", marginTop: 16, padding: "12px 0", borderRadius: 12, background: `linear-gradient(90deg, ${COLORS.accent}, ${COLORS.midPurple})`, color: "#fff", fontFamily: "'Space Mono',monospace", fontSize: 13, fontWeight: 700, border: "none", cursor: "pointer" }}>
-          ✦ Analyze Resume with AI
-        </button>
-      </SectionCard>
+          {/* KYC Documents */}
+          <div style={{ borderTop: `1px solid ${COLORS.midPurple}55`, paddingTop: 20 }}>
+            <p style={{ fontSize: 10, color: COLORS.accent, fontFamily: "'Space Mono',monospace", letterSpacing: 1, textTransform: "uppercase", marginBottom: 14, marginTop: 0 }}>KYC Documents</p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <KycDocWidget
+                label="Aadhaar"
+                docData={aadhaarDoc}
+                fieldName="aadhaar"
+                editing={editing}
+                uploading={uploadingDoc}
+                onUpload={handleDocUpload}
+              />
+              <KycDocWidget
+                label="PAN"
+                docData={panDoc}
+                fieldName="pan"
+                editing={editing}
+                uploading={uploadingDoc}
+                onUpload={handleDocUpload}
+              />
+            </div>
+            {!editing && (
+              <p style={{ fontSize: 11, color: COLORS.grayMuted, marginTop: 12, fontFamily: "'Space Mono',monospace", textAlign: "center" }}>
+                🔒 Your KYC documents are stored securely and never shared.
+              </p>
+            )}
+          </div>
+        </SectionCard>
+      </div>
       {toast && <Toast message={toast.msg} type={toast.type} onDone={() => setToast(null)} />}
     </>
   );
@@ -561,22 +916,27 @@ function calcCompletion(profile) {
   let score = 0;
   const personalFields = ["firstName", "lastName", "phone", "location", "linkedin", "github", "bio"];
   const filled = personalFields.filter(f => profile[f]?.trim()).length;
-  score += (filled / personalFields.length) * 40;
-  if ((profile.education || []).filter(e => e.degree && e.institution).length > 0) score += 35;
-  if (profile.resumeUrl) score += 25;
+  score += (filled / personalFields.length) * 30;
+  if ((profile.education || []).filter(e => e.degree && e.institution).length > 0) score += 25;
+  if (profile.resumeUrl) score += 20;
+  // KYC fields
+  const kycFields = ["dob", "nationality", "aadhaarNumber", "panNumber"];
+  const kycFilled = kycFields.filter(f => profile[f]?.trim()).length;
+  score += (kycFilled / kycFields.length) * 15;
+  const addrFields = ["state", "district", "pin", "locality"];
+  const addrFilled = addrFields.filter(f => profile.address?.[f]?.trim()).length;
+  score += (addrFilled / addrFields.length) * 10;
   return Math.round(score);
 }
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function ProfilePage() {
-  // const { user: authUser } = useAuth();
   const { user: authUser, login } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("personal");
   const [photoUploading, setPhotoUploading] = useState(false);
 
-  // Fetch full profile on mount
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -609,7 +969,6 @@ export default function ProfilePage() {
       const json = await res.json();
       if (json.success) {
         setProfile(p => ({ ...p, picture: json.photoUrl }));
-
         const token = localStorage.getItem("token");
         login({ ...(authUser || {}), picture: json.photoUrl }, token);
       }
@@ -628,22 +987,25 @@ export default function ProfilePage() {
   };
 
   const tabs = [
-    { id: "personal", label: "Personal Details", icon: "👤" },
-    { id: "education", label: "Education", icon: "🎓" },
-    { id: "resume", label: "Resume", icon: "📄" },
+    { id: "personal",  label: "Personal Details", icon: "👤" },
+    { id: "education", label: "Education",         icon: "🎓" },
+    { id: "resume",    label: "Resume",            icon: "📄" },
+    { id: "kyc",       label: "KYC & Address",     icon: "🪪" },
   ];
 
   const profilePct = calcCompletion(profile);
-  const pctColor = profilePct >= 80 ? COLORS.green : profilePct >= 50 ? COLORS.accent : "#f59e0b";
+  const pctColor = profilePct >= 80 ? COLORS.green : profilePct >= 50 ? COLORS.accent : COLORS.amber;
 
-  // Photo source priority: uploaded photo > Google picture > initials
   const photoSrc = profile?.picture
-    ? profile.picture.startsWith('http')
-      ? profile.picture                               // Google OAuth URL
-      : `http://localhost:4000${profile.picture}`     // local upload
+    ? profile.picture.startsWith("http")
+      ? profile.picture
+      : `http://localhost:4000${profile.picture}`
     : null;
 
   const initials = `${profile?.firstName?.[0] || ""}${profile?.lastName?.[0] || ""}`.toUpperCase() || "?";
+
+  // ── Profile complete badge ──
+  const isProfileComplete = profile?.profileComplete === true;
 
   if (loading) return (
     <div style={{ minHeight: "100vh", background: COLORS.deepNavy, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -687,7 +1049,19 @@ export default function ProfilePage() {
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontWeight: 700, fontSize: 15 }}>{profile?.firstName} {profile?.lastName}</div>
                 <div style={{ fontSize: 11, color: COLORS.grayMuted, marginTop: 2 }}>{profile?.email}</div>
-                <span style={{ display: "inline-block", marginTop: 8, background: `${COLORS.green}22`, color: COLORS.green, fontSize: 9, fontFamily: "'Space Mono',monospace", padding: "3px 10px", borderRadius: 99, border: `1px solid ${COLORS.green}44` }}>
+
+                {/* Profile Complete Badge */}
+                {isProfileComplete ? (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 8, background: `${COLORS.green}22`, color: COLORS.green, fontSize: 9, fontFamily: "'Space Mono',monospace", padding: "3px 10px", borderRadius: 99, border: `1px solid ${COLORS.green}44` }}>
+                    ✓ Profile Complete
+                  </span>
+                ) : (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 8, background: `${COLORS.amber}18`, color: COLORS.amber, fontSize: 9, fontFamily: "'Space Mono',monospace", padding: "3px 10px", borderRadius: 99, border: `1px solid ${COLORS.amber}44` }}>
+                    ◑ Setup Incomplete
+                  </span>
+                )}
+
+                <span style={{ display: "inline-block", marginTop: 6, background: `${COLORS.green}22`, color: COLORS.green, fontSize: 9, fontFamily: "'Space Mono',monospace", padding: "3px 10px", borderRadius: 99, border: `1px solid ${COLORS.green}44` }}>
                   ● Available for Interviews
                 </span>
               </div>
@@ -701,7 +1075,7 @@ export default function ProfilePage() {
                   <div style={{ width: `${profilePct}%`, height: "100%", background: `linear-gradient(90deg, ${COLORS.accent}, ${pctColor})`, borderRadius: 99, transition: "width 0.5s ease" }} />
                 </div>
                 <p style={{ fontSize: 10, color: COLORS.grayMuted, marginTop: 6 }}>
-                  {profilePct < 50 ? "Fill in your details to get started" : profilePct < 100 ? "Almost there — upload your resume!" : "Profile complete 🎉"}
+                  {profilePct < 50 ? "Fill in your details to get started" : profilePct < 100 ? "Almost there — complete your KYC!" : "Profile complete 🎉"}
                 </p>
               </div>
             </div>
@@ -717,11 +1091,14 @@ export default function ProfilePage() {
 
             {/* Quick Stats */}
             <div style={{ background: `linear-gradient(135deg, ${COLORS.cardDark} 60%, ${COLORS.darkPurple} 100%)`, borderRadius: 18, padding: 20, border: `1px solid ${COLORS.midPurple}55` }}>
-              <p style={{ fontSize: 10, color: COLORS.grayMuted, fontFamily: "'Space Mono',monospace", letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}>Profile Completion</p>
+              <p style={{ fontSize: 10, color: COLORS.grayMuted, fontFamily: "'Space Mono',monospace", letterSpacing: 2, textTransform: "uppercase", marginBottom: 12, marginTop: 0 }}>Profile Completion</p>
               {[
-                ["Personal Info", profile?.bio ? "✓" : "–", profile?.bio ? COLORS.green : COLORS.grayMuted],
-                ["Education", (profile?.education?.length > 0) ? "✓" : "–", (profile?.education?.length > 0) ? COLORS.green : COLORS.grayMuted],
-                ["Resume", profile?.resumeUrl ? "✓" : "–", profile?.resumeUrl ? COLORS.green : COLORS.grayMuted],
+                ["Personal Info",  profile?.bio ? "✓" : "–",                                          profile?.bio ? COLORS.green : COLORS.grayMuted],
+                ["Education",      (profile?.education?.length > 0) ? "✓" : "–",                      (profile?.education?.length > 0) ? COLORS.green : COLORS.grayMuted],
+                ["Resume",         profile?.resumeUrl ? "✓" : "–",                                    profile?.resumeUrl ? COLORS.green : COLORS.grayMuted],
+                ["KYC Numbers",    (profile?.aadhaarNumber && profile?.panNumber) ? "✓" : "–",         (profile?.aadhaarNumber && profile?.panNumber) ? COLORS.green : COLORS.grayMuted],
+                ["KYC Docs",       (profile?.aadhaarDoc?.name && profile?.panDoc?.name) ? "✓" : "–",  (profile?.aadhaarDoc?.name && profile?.panDoc?.name) ? COLORS.green : COLORS.grayMuted],
+                ["Address",        profile?.address?.state ? "✓" : "–",                               profile?.address?.state ? COLORS.green : COLORS.grayMuted],
               ].map(([label, val, color]) => (
                 <div key={label} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 10 }}>
                   <span style={{ color: COLORS.grayMuted }}>{label}</span>
@@ -733,9 +1110,10 @@ export default function ProfilePage() {
 
           {/* ── Main Content ── */}
           <main style={{ flex: 1, minWidth: 0 }}>
-            {activeTab === "personal" && <PersonalSection initialData={profile} onSaved={refreshProfile} />}
+            {activeTab === "personal"  && <PersonalSection  initialData={profile} onSaved={refreshProfile} />}
             {activeTab === "education" && <EducationSection initialData={profile} onSaved={refreshProfile} />}
-            {activeTab === "resume" && <ResumeSection initialData={profile} onSaved={refreshProfile} />}
+            {activeTab === "resume"    && <ResumeSection    initialData={profile} onSaved={refreshProfile} />}
+            {activeTab === "kyc"       && <KycSection       initialData={profile} onSaved={refreshProfile} />}
           </main>
         </div>
       </div>

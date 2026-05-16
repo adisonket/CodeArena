@@ -56,7 +56,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       select: false,
     },
-    
+
     // ── Profile fields (add these to your existing userSchema) ──
     phone: { type: String, default: "" },
     location: { type: String, default: "" },
@@ -86,6 +86,29 @@ const userSchema = new mongoose.Schema(
         ],
       }
     ],
+    // ── KYC / Setup form fields ──────────────────────────────────────────────────
+    dob: { type: String, default: "" },
+    nationality: { type: String, default: "" },
+    address: {
+      state: { type: String, default: "" },
+      district: { type: String, default: "" },
+      pin: { type: String, default: "" },
+      locality: { type: String, default: "" },
+      postOffice: { type: String, default: "" },
+    },
+    aadhaarNumber: { type: String, default: "" },
+    panNumber: { type: String, default: "" },
+    aadhaarDoc: {
+      name: { type: String, default: "" },
+      path: { type: String, default: "" },
+      size: { type: String, default: "" },
+    },
+    panDoc: {
+      name: { type: String, default: "" },
+      path: { type: String, default: "" },
+      size: { type: String, default: "" },
+    },
+    profileComplete: { type: Boolean, default: false },
 
   },
   { timestamps: true }

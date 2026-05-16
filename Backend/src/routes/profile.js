@@ -4,14 +4,9 @@ import path from "path";
 import fs from "fs";
 import { protect } from "../middleware/auth.js";
 import {
-  getProfile,
-  updateProfile,
-  uploadPhoto,
-  uploadResume,
-  deleteResume,
-  updateEducation,
-  uploadEduDoc,
-  deleteEduDoc,
+  getProfile, updateProfile, uploadPhoto, uploadResume,
+  deleteResume, updateEducation, uploadEduDoc, deleteEduDoc,
+  analyzeResume,  completeSetup,
 } from "../controllers/profile.js";
 
 const router = express.Router();
@@ -59,15 +54,39 @@ const eduDocUpload = multer({
   },
 });
 
+
+// ── KYC upload ────────────────────────────────────────────────────────────────
+if (!fs.existsSync("uploads/kyc")) fs.mkdirSync("uploads/kyc", { recursive: true });
+
+const kycUpload = multer({
+  storage: makeStorage("uploads/kyc"),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_, file, cb) => {
+    const allowed = [".jpg", ".jpeg", ".png", ".pdf"];
+    if (allowed.includes(path.extname(file.originalname).toLowerCase())) cb(null, true);
+    else cb(new Error("Only JPG, PNG, or PDF files allowed"));
+  },
+});
+
+
 // ── Routes ────────────────────────────────────────────────────────────────────
 router.get("/", protect, getProfile);
 router.put("/", protect, updateProfile);
 router.post("/photo", protect, photoUpload.single("photo"), uploadPhoto);
+
+router.post("/resume/analyze", protect, analyzeResume);
 router.post("/resume", protect, resumeUpload.single("resume"), uploadResume);
 router.delete("/resume", protect, deleteResume);
+
 router.put("/education", protect, updateEducation);
 router.post("/education/:eduId/doc", protect, eduDocUpload.single("doc"), uploadEduDoc);
 router.delete("/education/:eduId/doc/:docId", protect, deleteEduDoc);
+router.post(
+  "/complete-setup",
+  protect,
+  kycUpload.fields([{ name: "aadhaar", maxCount: 1 }, { name: "pan", maxCount: 1 }]),
+  completeSetup
+);
 
 // ── Multer error handler ──────────────────────────────────────────────────────
 router.use((err, req, res, next) => {

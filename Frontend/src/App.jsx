@@ -68,7 +68,7 @@ function App() {
       <Route path="/admin/interview" element={<AdminInterview />} />
       {/* <Route path="/candidate" element={<CandidatesPage />} /> */}
       {/* <Route path="/admindrive" element={<AdminDrive />} /> */}
-      
+      {/* <Route path="/admindrive" element={<AdminDrive />} /> */}
 
       <Route path="/interview" element={<Interview/>} />
       <Route path="/registration" element={<UserProfileForm />} />
