@@ -308,11 +308,16 @@ const CreateDriveModal = ({
     };
 
     const handleGenerate = async () => {
-        if (!form.aiPrompt.trim()) return;
+
         setGenerating(true);
-        await new Promise(r => setTimeout(r, 1200));
+    
+        await new Promise((r) =>
+            setTimeout(r, 1200)
+        );
+    
         setGenerating(false);
-        handleSave();
+    
+        setStep(4);
     };
 
     const handleSave = async () => {
@@ -366,21 +371,21 @@ const CreateDriveModal = ({
     
                 const newDrive = {
     
-                    _id: res.data.drive._id,
+                    _id: response.data.drive._id,
     
-                    title: res.data.drive.hiringPositionName,
+                    title: response.data.drive.hiringPositionName,
     
-                    tag: res.data.drive.driveType,
+                    tag: response.data.drive.driveType,
     
                     status: "Draft",
     
                     visibility: "Private",
     
-                    type: res.data.drive.driveType,
+                    type: response.data.drive.driveType,
     
-                    startDate: res.data.drive.driveDate,
+                    startDate: response.data.drive.driveDate,
     
-                    endDate: res.data.drive.driveDate,
+                    endDate: response.data.drive.driveDate,
     
                     totalCandidates: 0,
     
@@ -391,26 +396,26 @@ const CreateDriveModal = ({
                     topScore: 0,
     
                     duration:
-                        res.data.drive.timeDurationInMin,
+                        response.data.drive.timeDurationInMin,
     
                     questionCount:
-                        res.data.drive.mcqCount +
-                        res.data.drive.codeCount,
+                        response.data.drive.mcqCount +
+                        response.data.drive.codeCount,
     
                     mcqCount:
-                        res.data.drive.mcqCount,
+                        response.data.drive.mcqCount,
     
                     codeCount:
-                        res.data.drive.codeCount,
+                        response.data.drive.codeCount,
     
                     marksPerMcq:
-                        res.data.drive.mcqMarks,
+                        response.data.drive.mcqMarks,
     
                     marksPerCode:
-                        res.data.drive.codeMarks,
+                        response.data.drive.codeMarks,
     
                     createdAt:
-                        res.data.drive.createdAt,
+                        response.data.drive.createdAt,
     
                     difficulty: form.difficulty,
     
@@ -421,11 +426,9 @@ const CreateDriveModal = ({
     
                 setDone(true);
     
-                onSave(response.data.drive);
-    
-                setTimeout(() => {
-                    onClose();
-                }, 900);
+                onSave(newDrive);
+
+                onClose();
             }
     
         } catch (error) {
