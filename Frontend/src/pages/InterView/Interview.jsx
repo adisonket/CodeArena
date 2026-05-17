@@ -5,7 +5,7 @@ import Header from "../../components/Header";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
-import { FaceDetector, FilesetResolver } from "@mediapipe/tasks-vision";
+import { FaceDetector, ObjectDetector, FilesetResolver } from "@mediapipe/tasks-vision";
 import vapi from "../../lib/vapi";
 
 const CustomModal = ({ isOpen, title, message, type, onClose, onConfirm }) => {
@@ -243,6 +243,7 @@ const Interview = () => {
   const [isSetupModalOpen, setIsSetupModalOpen] = useState(true);
 
   const faceDetectorRef = useRef(null);
+  const objectDetectorRef = useRef(null);
   const missingFaceFrames = useRef(0);
   const maskFrames = useRef(0);
   const lastViolationTime = useRef(0);
@@ -277,6 +278,8 @@ const Interview = () => {
     fullscreen: 0,
     mask: 0,
     multiPerson: 0,
+    brightness: 0,
+    phone: 0,
   });
 
   const submitInterviewResult = async (
@@ -478,16 +481,26 @@ const Interview = () => {
         const vision = await FilesetResolver.forVisionTasks(
           "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm",
         );
-        const detector = await FaceDetector.createFromOptions(vision, {
+        const faceDetector = await FaceDetector.createFromOptions(vision, {
           baseOptions: {
             modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite`,
-            delegate: "CPU",
+            delegate: "GPU",
           },
           runningMode: "VIDEO",
           minDetectionConfidence: 0.75,
         });
 
-        faceDetectorRef.current = detector;
+        const objectDetector = await ObjectDetector.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath: `https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite`,
+            delegate: "GPU",
+          },
+          scoreThreshold: 0.3,
+          runningMode: "VIDEO",
+        });
+
+        faceDetectorRef.current = faceDetector;
+        objectDetectorRef.current = objectDetector;
         setIsModelsLoaded(true);
       } catch (err) {
         console.error("Failed to load MediaPipe models.", err);
@@ -570,6 +583,11 @@ const Interview = () => {
 
   useEffect(() => {
     if (status !== "active" || !isModelsLoaded) return;
+    
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    canvas.width = 64;
+    canvas.height = 36;
     let isRunning = true;
 
     const performAnalysis = async () => {
@@ -583,8 +601,34 @@ const Interview = () => {
           return;
         }
 
-        const now = Date.now();
-        const isCooldown = now - lastViolationTime.current < 4000;
+        const checkCooldown = () => Date.now() - lastViolationTime.current < 4000;
+
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        let totalBrightness = 0;
+        for (let i = 0; i < frame.data.length; i += 16) {
+          totalBrightness +=
+            (frame.data[i] + frame.data[i + 1] + frame.data[i + 2]) / 3;
+        }
+        const avgBrightness = totalBrightness / (frame.data.length / 16);
+
+        if (avgBrightness < 30) {
+          if (!checkCooldown()) {
+            violations.current.brightness += 1;
+            lastViolationTime.current = Date.now();
+            if (violations.current.brightness >= 4)
+              terminateInterview("Environment too dark.");
+            else
+              triggerAlert(
+                "Lighting Warning",
+                `Warning ${violations.current.brightness}/3: Lighting is too dark. Please turn on a light.`,
+                "danger",
+              );
+          }
+          isAnalyzing.current = false;
+          return;
+        }
 
         let faceCount = 0;
         let isMasked = false;
@@ -611,7 +655,7 @@ const Interview = () => {
           const allowedMissingFrames = 3;
 
           if (missingFaceFrames.current >= allowedMissingFrames) {
-            if (!isCooldown) {
+            if (!checkCooldown()) {
               violations.current.noFace += 1;
               lastViolationTime.current = Date.now();
               missingFaceFrames.current = 0;
@@ -628,7 +672,7 @@ const Interview = () => {
           }
         } else if (faceCount > 1) {
           missingFaceFrames.current = 0;
-          if (!isCooldown) {
+          if (!checkCooldown()) {
             violations.current.multiPerson += 1;
             lastViolationTime.current = Date.now();
             if (violations.current.multiPerson >= 3) {
@@ -648,7 +692,7 @@ const Interview = () => {
           maskFrames.current += 1;
 
           if (maskFrames.current >= 3) {
-            if (!isCooldown) {
+            if (!checkCooldown()) {
               violations.current.mask += 1;
               lastViolationTime.current = Date.now();
               maskFrames.current = 0;
@@ -669,6 +713,44 @@ const Interview = () => {
           missingFaceFrames.current = 0;
           maskFrames.current = 0;
         }
+
+        let isPhoneDetected = false;
+        if (objectDetectorRef.current) {
+          const objResults = objectDetectorRef.current.detectForVideo(
+            video,
+            performance.now(),
+          );
+
+          for (const detection of objResults.detections) {
+            const hasPhone = detection.categories.some(
+              (cat) => cat.categoryName === "cell phone",
+            );
+
+            if (hasPhone) {
+              isPhoneDetected = true;
+              break;
+            }
+          }
+        }
+
+        if (isPhoneDetected) {
+          if (!checkCooldown()) {
+            violations.current.phone += 1;
+            lastViolationTime.current = Date.now();
+
+            if (violations.current.phone >= 3) {
+              terminateInterview(
+                "Use of an electronic device (cell phone) detected.",
+              );
+            } else {
+              triggerAlert(
+                "Security Violation",
+                `Warning ${violations.current.phone}/2: Cell phone detected! Electronic devices are strictly prohibited.`,
+                "danger",
+              );
+            }
+          }
+        }
       } catch (err) {
         console.error("Analysis Error:", err);
       } finally {
@@ -679,7 +761,7 @@ const Interview = () => {
     const loop = async () => {
       if (!isRunning) return;
       await performAnalysis();
-      analysisTimeoutRef.current = setTimeout(loop, 1000);
+      analysisTimeoutRef.current = setTimeout(loop, 150);
     };
 
     loop();

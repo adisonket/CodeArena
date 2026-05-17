@@ -1,13 +1,25 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaceDetector, FilesetResolver } from "@mediapipe/tasks-vision";
+import {
+  FaceDetector,
+  ObjectDetector,
+  FilesetResolver,
+} from "@mediapipe/tasks-vision";
 import SoftBackdrop from "../../components/SoftBackdrop";
 import LenisScroll from "../../components/lenis";
 import { useAuth } from "../../context/AuthContext";
 import CodeEditor from "../../components/CodeEditor";
 
-const CustomModal = ({ isOpen, title, message, type, onClose, onConfirm }) => {
+const CustomModal = ({
+  isOpen,
+  title,
+  message,
+  type,
+  onClose,
+  onConfirm,
+  hideCancel = false,
+}) => {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -48,12 +60,14 @@ const CustomModal = ({ isOpen, title, message, type, onClose, onConfirm }) => {
                   Confirm
                 </button>
               )}
-              <button
-                onClick={onClose}
-                className="flex-1 py-3.5 rounded-2xl bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 text-[10px] font-black uppercase tracking-widest transition-all active:scale-95"
-              >
-                {onConfirm ? "Cancel" : "Close"}
-              </button>
+              {!hideCancel && (
+                <button
+                  onClick={onClose}
+                  className="flex-1 py-3.5 rounded-2xl bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 text-[10px] font-black uppercase tracking-widest transition-all active:scale-95"
+                >
+                  {onConfirm ? "Cancel" : "Close"}
+                </button>
+              )}
             </div>
           </motion.div>
         </div>
@@ -213,7 +227,7 @@ const Assessment = () => {
 
   const photoSrc = user?.picture
     ? `http://localhost:4000${user.picture}`
-    : user?.picture || null; 
+    : user?.picture || null;
 
   const [timeLeft, setTimeLeft] = useState(
     drive ? drive.timeDurationInMin * 60 : 0,
@@ -226,6 +240,7 @@ const Assessment = () => {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const faceDetectorRef = useRef(null);
+  const objectDetectorRef = useRef(null);
   const [status, setStatus] = useState("idle");
   const [cameraError, setCameraError] = useState(null);
   const [isModelsLoaded, setIsModelsLoaded] = useState(false);
@@ -240,6 +255,8 @@ const Assessment = () => {
   const audioAnalyserRef = useRef(null);
   const audioContextRef = useRef(null);
 
+  const isTerminating = useRef(false);
+
   const violations = useRef({
     brightness: 0,
     mask: 0,
@@ -248,6 +265,7 @@ const Assessment = () => {
     tab: 0,
     keyboard: 0,
     noise: 0,
+    phone: 0,
   });
   const lastViolationTime = useRef(0);
   const isAnalyzing = useRef(false);
@@ -259,11 +277,34 @@ const Assessment = () => {
     message: "",
     type: "info",
     onConfirm: null,
+    hideCancel: false,
+    onCloseAction: null,
   });
-  const closeModal = () =>
+
+  const closeModal = () => {
+    if (modalConfig.onCloseAction) {
+      modalConfig.onCloseAction();
+    }
     setModalConfig((prev) => ({ ...prev, isOpen: false }));
-  const triggerAlert = (title, message, type = "info", onConfirm = null) => {
-    setModalConfig({ isOpen: true, title, message, type, onConfirm });
+  };
+
+  const triggerAlert = (
+    title,
+    message,
+    type = "info",
+    onConfirm = null,
+    hideCancel = false,
+    onCloseAction = null,
+  ) => {
+    setModalConfig({
+      isOpen: true,
+      title,
+      message,
+      type,
+      onConfirm,
+      hideCancel,
+      onCloseAction,
+    });
   };
 
   const currentQuestionType = questions[currentQ]?.type || "MCQ";
@@ -362,9 +403,25 @@ const Assessment = () => {
   }, [status, timeLeft]);
 
   const submitAssessment = async (finalStatus = "Completed", reason = "") => {
+    isTerminating.current = true;
     setStatus("idle");
 
-    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    const doc = window.document;
+    if (
+      doc.fullscreenElement ||
+      doc.webkitFullscreenElement ||
+      doc.mozFullScreenElement ||
+      doc.msFullscreenElement
+    ) {
+      try {
+        if (doc.exitFullscreen) await doc.exitFullscreen();
+        else if (doc.webkitExitFullscreen) await doc.webkitExitFullscreen();
+        else if (doc.mozCancelFullScreen) await doc.mozCancelFullScreen();
+        else if (doc.msExitFullscreen) await doc.msExitFullscreen();
+      } catch (err) {
+        console.warn("Fullscreen exit failed:", err);
+      }
+    }
 
     const timeTaken = drive.timeDurationInMin * 60 - timeLeft;
     const mockScore = Math.floor(
@@ -394,6 +451,8 @@ const Assessment = () => {
           "Session Terminated",
           `Your assessment was terminated due to security or environment violations. (${reason})`,
           "danger",
+          null,
+          false,
           () => navigate("/drive"),
         );
       } else {
@@ -402,6 +461,7 @@ const Assessment = () => {
           "Your responses and security metrics have been saved. You may safely close this tab.",
           "info",
           () => navigate("/drive"),
+          true,
         );
       }
     } catch (err) {
@@ -433,16 +493,27 @@ const Assessment = () => {
         const vision = await FilesetResolver.forVisionTasks(
           "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm",
         );
-        const detector = await FaceDetector.createFromOptions(vision, {
+
+        const faceDetector = await FaceDetector.createFromOptions(vision, {
           baseOptions: {
             modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite`,
-            delegate: "CPU",
+            delegate: "GPU",
           },
           runningMode: "VIDEO",
-          minDetectionConfidence: 0.5,
+          minDetectionConfidence: 0.75,
         });
 
-        faceDetectorRef.current = detector;
+        const objectDetector = await ObjectDetector.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath: `https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite`,
+            delegate: "GPU",
+          },
+          scoreThreshold: 0.3,
+          runningMode: "VIDEO",
+        });
+
+        faceDetectorRef.current = faceDetector;
+        objectDetectorRef.current = objectDetector;
         setIsModelsLoaded(true);
       } catch (err) {
         console.error("Failed to load MediaPipe models.", err);
@@ -530,11 +601,12 @@ const Assessment = () => {
           return;
         }
 
-        const now = Date.now();
-        const isCooldown = now - lastViolationTime.current < 4000;
+        const checkCooldown = () =>
+          Date.now() - lastViolationTime.current < 4000;
 
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
         let totalBrightness = 0;
         for (let i = 0; i < frame.data.length; i += 16) {
           totalBrightness +=
@@ -543,7 +615,7 @@ const Assessment = () => {
         const avgBrightness = totalBrightness / (frame.data.length / 16);
 
         if (avgBrightness < 30) {
-          if (!isCooldown) {
+          if (!checkCooldown()) {
             violations.current.brightness += 1;
             lastViolationTime.current = Date.now();
             if (violations.current.brightness >= 4)
@@ -572,7 +644,7 @@ const Assessment = () => {
             noiseFrames.current += 1;
 
             if (noiseFrames.current >= 3) {
-              if (!isCooldown) {
+              if (!checkCooldown()) {
                 violations.current.noise += 1;
                 lastViolationTime.current = Date.now();
                 noiseFrames.current = 0;
@@ -620,7 +692,7 @@ const Assessment = () => {
           const allowedMissingFrames = isCurrentCoding ? 3 : 2;
 
           if (missingFaceFrames.current >= allowedMissingFrames) {
-            if (!isCooldown) {
+            if (!checkCooldown()) {
               violations.current.noFace += 1;
               lastViolationTime.current = Date.now();
               missingFaceFrames.current = 0;
@@ -637,7 +709,7 @@ const Assessment = () => {
           }
         } else if (faceCount > 1) {
           missingFaceFrames.current = 0;
-          if (!isCooldown) {
+          if (!checkCooldown()) {
             violations.current.multiPerson += 1;
             lastViolationTime.current = Date.now();
             if (violations.current.multiPerson >= 3) {
@@ -655,7 +727,7 @@ const Assessment = () => {
           maskFrames.current += 1;
 
           if (maskFrames.current >= 3) {
-            if (!isCooldown) {
+            if (!checkCooldown()) {
               violations.current.mask += 1;
               lastViolationTime.current = Date.now();
               maskFrames.current = 0;
@@ -674,6 +746,44 @@ const Assessment = () => {
           missingFaceFrames.current = 0;
           maskFrames.current = 0;
         }
+
+        let isPhoneDetected = false;
+        if (objectDetectorRef.current) {
+          const objResults = objectDetectorRef.current.detectForVideo(
+            video,
+            performance.now(),
+          );
+
+          for (const detection of objResults.detections) {
+            const hasPhone = detection.categories.some(
+              (cat) => cat.categoryName === "cell phone",
+            );
+
+            if (hasPhone) {
+              isPhoneDetected = true;
+              break;
+            }
+          }
+        }
+
+        if (isPhoneDetected) {
+          if (!checkCooldown()) {
+            violations.current.phone += 1;
+            lastViolationTime.current = Date.now();
+
+            if (violations.current.phone >= 3) {
+              terminateSession(
+                "Use of an electronic device (cell phone) detected.",
+              );
+            } else {
+              triggerAlert(
+                "Security Violation",
+                `Warning ${violations.current.phone}/2: Cell phone detected! Electronic devices are strictly prohibited.`,
+                "danger",
+              );
+            }
+          }
+        }
       } catch (err) {
         console.error("Analysis Error:", err);
       } finally {
@@ -684,7 +794,7 @@ const Assessment = () => {
     const loop = async () => {
       if (!isRunning) return;
       await performAnalysis();
-      analysisTimeoutRef.current = setTimeout(loop, 500);
+      analysisTimeoutRef.current = setTimeout(loop, 150);
     };
     loop();
 
@@ -696,7 +806,11 @@ const Assessment = () => {
 
   useEffect(() => {
     if (status !== "active") return;
+    isTerminating.current = false;
+
     const handleFocusLoss = (reason) => {
+      if (isTerminating.current) return;
+
       const now = Date.now();
       if (now - lastViolationTime.current < 2000 || modalConfig.isOpen) return;
       lastViolationTime.current = now;
@@ -712,17 +826,27 @@ const Assessment = () => {
     };
 
     const handleFullscreenChange = () => {
-      if (!document.fullscreenElement && status === "active") {
+      if (
+        !document.fullscreenElement &&
+        status === "active" &&
+        !isTerminating.current
+      ) {
         document.documentElement
           .requestFullscreen()
           .then(() => handleFocusLoss("Exiting full-screen"))
           .catch(() => terminateSession("Security protocol failed."));
       }
     };
+
     const handleVisibilityChange = () => {
-      if (document.hidden) handleFocusLoss("Tab switching");
+      if (document.hidden && !isTerminating.current)
+        handleFocusLoss("Tab switching");
     };
-    const handleBlur = () => handleFocusLoss("Window focus loss");
+
+    const handleBlur = () => {
+      if (!isTerminating.current) handleFocusLoss("Window focus loss");
+    };
+
     const handleKeyDown = (e) => {
       const key = e.key.toLowerCase();
       const ctrlOrMeta = e.ctrlKey || e.metaKey;
@@ -850,7 +974,7 @@ const Assessment = () => {
               )}
             </div>
           </div>
-          
+
           <span className="text-lg sm:text-xl font-bold text-white hidden sm:block">
             {user?.firstName} {user?.lastName}
           </span>

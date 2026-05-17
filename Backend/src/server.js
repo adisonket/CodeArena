@@ -5,6 +5,7 @@ import session from "express-session";
 import passport from "passport";
 import rateLimit from "express-rate-limit";
 
+
 import connectDB from "./lib/db.js";
 
 import authRoutes from "./routes/auth.js";
@@ -18,6 +19,9 @@ import profileRoutes from "./routes/profile.js";
 import practiceRoutes from "./routes/practice.js";
 import compilerRoutes from "./routes/compiler.js";
 import aiQuestionRoutes from "./routes/aiQuestions.js";
+import dashboardRoutes from "./routes/dashboard.js";
+import userDomainRoutes from "./routes/userDomain.js";
+
 
 import candidateRoutes from "./routes/candidate.js";
 
@@ -161,6 +165,15 @@ app.use(
   aiQuestionRoutes
 );
 
+app.use(
+  "/api/user-domain",
+  userDomainRoutes
+);
+
+app.use(
+  "/api/dashboard",
+  dashboardRoutes
+);
 app.use(
   "/api/candidates", 
   candidateRoutes
