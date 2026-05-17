@@ -225,9 +225,9 @@ const Assessment = () => {
   const navigate = useNavigate();
   const drive = location.state?.drive;
 
-  const photoSrc = user?.picture
-    ? `http://localhost:4000${user.picture}`
-    : user?.picture || null;
+  const photoSrc = user.picture.startsWith("http")
+    ? user.picture
+    : `http://localhost:4000${user.picture}`;
 
   const [timeLeft, setTimeLeft] = useState(
     drive ? drive.timeDurationInMin * 60 : 0,
@@ -1050,13 +1050,16 @@ const Assessment = () => {
                   </div>
                 </div>
                 <div className="flex justify-between mt-10 shrink-0 w-full">
-                  <button
-                    onClick={handlePrev}
-                    disabled={currentQ === 0}
-                    className="bg-white/5 border border-white/10 hover:bg-white/10 text-gray-300 disabled:opacity-50 disabled:cursor-not-allowed px-10 py-3 rounded-xl text-sm font-bold uppercase tracking-widest active:scale-95 transition-all"
-                  >
-                    Previous
-                  </button>
+                  {currentQ > 0 ? (
+                    <button
+                      onClick={handlePrev}
+                      className="bg-white/5 border border-white/10 hover:bg-white/10 text-gray-300 px-10 py-3 rounded-xl text-sm font-bold uppercase tracking-widest active:scale-95 transition-all"
+                    >
+                      Previous
+                    </button>
+                  ) : (
+                    <div></div>
+                  )}
                   <button
                     onClick={handleNext}
                     className="bg-indigo-600 hover:bg-indigo-500 text-white px-10 py-3 rounded-xl text-sm font-bold uppercase tracking-widest active:scale-95 transition-all"
