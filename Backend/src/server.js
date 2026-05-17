@@ -23,6 +23,8 @@ import candidateRoutes from "./routes/candidate.js";
 
 import driveRoutes from "./routes/drive.js";
 
+import aiPromptRoutes from "./routes/aiPrompt.js";
+
 dotenv.config();
 
 initGoogleStrategy();
@@ -167,6 +169,11 @@ app.use(
 app.use(
   "/api/drives",
   driveRoutes
+);
+
+app.use(
+  "/api/ai",
+  aiPromptRoutes
 );
 
 // ============================

@@ -144,3 +144,52 @@ export const getCandidateById = async (req, res) => {
     });
   }
 };
+
+export const deleteCandidate = async (
+  req,
+  res
+) => {
+
+  try {
+
+      const candidate =
+          await User.findById(
+              req.params.id
+          );
+
+      if (!candidate) {
+
+          return res.status(404).json({
+              success: false,
+              message:
+                  "Candidate not found",
+          });
+      }
+
+      // remove interview results
+      await InterviewResult.deleteMany({
+          userId: candidate._id,
+      });
+
+      // remove candidate
+      await User.findByIdAndDelete(
+          candidate._id
+      );
+
+      return res.status(200).json({
+          success: true,
+          message:
+              "Candidate deleted successfully",
+      });
+
+  } catch (error) {
+
+      console.log(error);
+
+      return res.status(500).json({
+          success: false,
+          message:
+              "Failed to delete candidate",
+      });
+  }
+};

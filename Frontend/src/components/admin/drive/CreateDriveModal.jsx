@@ -303,8 +303,44 @@ const CreateDriveModal = ({
         setErrors({}); setStep(3);
     };
 
-    const handleAutoFill = () => {
-        console.log("Auto fill clicked");
+    const handleAutoFill = async () => {
+
+        try {
+    
+            setGenerating(true);
+    
+            const response = await axios.post(
+                "http://localhost:4000/api/ai/generate-drive-prompt",
+                {
+                    title: form.title,
+                    tag: form.tag,
+                    type: form.type,
+                    difficulty: form.difficulty,
+                    duration: form.duration,
+                    mcqCount: form.mcqCount,
+                    codeCount: form.codeCount,
+                    marksPerMcq: form.marksPerMcq,
+                    marksPerCode: form.marksPerCode,
+                }
+            );
+    
+            if (response.data.success) {
+    
+                setForm((prev) => ({
+                    ...prev,
+                    aiPrompt:
+                        response.data.prompt,
+                }));
+            }
+    
+        } catch (error) {
+    
+            console.log(error);
+    
+        } finally {
+    
+            setGenerating(false);
+        }
     };
 
     const handleGenerate = async () => {
@@ -749,15 +785,43 @@ const CreateDriveModal = ({
 
                                 {/* Auto-fill button */}
                                 <motion.button
-                                    whileHover={{ scale:1.01 }} whileTap={{ scale:0.98 }}
+                                    whileHover={{ scale: 1.01 }}
+                                    whileTap={{ scale: 0.98 }}
                                     onClick={handleAutoFill}
-                                    disabled={false}
+                                    disabled={
+                                        generating ||
+                                        !form.title ||
+                                        !form.tag ||
+                                        !form.duration
+                                    }
                                     className="w-full py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 border border-indigo-500/30 transition disabled:opacity-50"
-                                    style={{ background:"rgba(99,102,241,0.1)", color:"#a5b4fc" }}>
-                                    <>
-                                        <Sparkles size={13} />
-                                        Auto AI Fill - Generate from Drive Details
-                                    </>
+                                    style={{
+                                        background: "rgba(99,102,241,0.1)",
+                                        color: "#a5b4fc"
+                                    }}
+                                >
+
+                                    {generating ? (
+                                        <>
+                                            <motion.div
+                                                animate={{ rotate: 360 }}
+                                                transition={{
+                                                    repeat: Infinity,
+                                                    duration: 0.7,
+                                                    ease: "linear"
+                                                }}
+                                                className="w-3.5 h-3.5 rounded-full border-2 border-indigo-300/30 border-t-indigo-200"
+                                            />
+
+                                            Generating Prompt...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Sparkles size={13} />
+                                            Auto AI Fill - Generate from Drive Details
+                                        </>
+                                    )}
+
                                 </motion.button>
 
                                 
