@@ -5,261 +5,226 @@ import axios from 'axios';
 
 const router = express.Router();
 
+// ─── Shared Gemini helper ──────────────────────────────────────────────────────
+
+const callGemini = async (prompt) => {
+  const res = await axios.post(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+    {
+      contents: [{ parts: [{ text: prompt }] }],
+    },
+    { headers: { 'Content-Type': 'application/json' } }
+  );
+  return (
+    res.data?.candidates?.[0]?.content?.parts?.[0]?.text ||
+    'No response generated.'
+  );
+};
 
 // =====================================
-// POST /api/practice/submit
+// POST /api/practice/analyze
+// Per-question AI hint — NOT saved to DB.
+// Works for both CODING and MCQ.
 // =====================================
-router.post('/submit', protect, async (req, res) => {
-
+router.post('/analyze', protect, async (req, res) => {
   try {
-
-    // =====================================
-    // Extract Request Data
-    // =====================================
     const {
-      questionId,
-      questionTitle,
+      type,           // "CODING" | "MCQ"
       question,
-      type,
-      options,
-      correctAnswer,
-      selectedAnswer,
-      code,
-      output,
-      language
+      options,        // MCQ only
+      correctAnswer,  // MCQ only
+      selectedAnswer, // MCQ only
+      code,           // CODING only
+      output,         // CODING only
+      language,       // CODING only
     } = req.body;
 
-    // =====================================
-    // MCQ Evaluation
-    // =====================================
-    const isCorrectMCQ =
-      selectedAnswer === correctAnswer;
+    let prompt = '';
 
-    // =====================================
-    // Gemini AI Review
-    // =====================================
-    let aiReview = '';
+    if (type === 'CODING') {
+      prompt = `
+You are a helpful coding mentor. A student is working on a coding problem.
+Do NOT give the full solution — give clear, encouraging hints that guide them.
 
-    try {
+# Question
+${question}
 
-      let prompt = '';
+# Language
+${language || 'Unknown'}
 
-      // =====================================
-      // MCQ QUESTIONS
-      // =====================================
-      if ((type || 'MCQ') === 'MCQ') {
+# Code written so far
+${code || '(nothing written yet)'}
 
-        prompt = `
-          You are an expert technical interviewer.
+# Program output
+${output || '(no output)'}
 
-          Evaluate this MCQ assessment submission.
+Give hints in this format:
 
-          # Question
-          ${question || questionTitle || 'Practice Question'}
+## What you've done right
+(acknowledge anything correct in their approach)
 
-          # Options
-          ${options?.join('\n') || 'No options provided'}
+## Hints to move forward
+(2-4 bullet-point hints — no full solution)
 
-          # Correct Answer
-          ${correctAnswer || 'Not provided'}
+## Edge cases to consider
+(1-2 things they might be missing)
 
-          # User Selected Answer
-          ${selectedAnswer || 'No answer selected'}
+Keep it beginner-friendly and concise.
+      `.trim();
+    } else {
+      // MCQ
+      prompt = `
+You are a helpful tutor. A student answered an MCQ question.
 
-          # MCQ Result
-          ${isCorrectMCQ ? 'Correct' : 'Incorrect'}
+# Question
+${question}
 
-          Analyze the submission in this exact format:
+# Options
+${(options || []).join('\n')}
 
-          # MCQ Evaluation
+# Student's selected answer
+${selectedAnswer || '(no answer selected yet)'}
 
-          - Was the selected answer correct?
-          - Explain the correct answer briefly.
+Give hints in this format:
 
-          # Knowledge Assessment
+## What this question tests
+(briefly explain the concept)
 
-          - What concept does this question test?
-          - What mistake did the candidate make (if any)?
+## Hint
+(guide them toward the correct answer WITHOUT revealing it directly)
 
-          # Final Score
+## Common misconception
+(what trap or confusion to watch out for)
 
-          Give a score out of 10.
-
-          # Verdict
-
-          Choose one:
-          - Excellent
-          - Good
-          - Needs Improvement
-
-          IMPORTANT:
-          - Return valid Markdown
-          - Keep response concise
-          - Be beginner friendly
-        `;
-
-      }
-
-      // =====================================
-      // CODING QUESTIONS
-      // =====================================
-      else {
-
-        prompt = `
-          You are an expert coding interviewer and technical evaluator.
-
-          Evaluate the following coding submission.
-
-          # Question
-          ${question || questionTitle || 'Coding Question'}
-
-          # Submitted Code
-          ${code || 'No code submitted'}
-
-          # Program Output
-          ${output || '(no output)'}
-
-          # Programming Language
-          ${language || 'Unknown'}
-
-          Analyze the submission in this exact format:
-
-          # Code Correctness
-
-          - Does the code solve the problem?
-          - Does the output match expectations?
-
-          # Code Quality
-
-          - Readability
-          - Naming
-          - Best practices
-          - Structure
-
-          # Optimization
-
-          - Better approaches if applicable
-          - Time complexity
-          - Space complexity
-
-          # Final Score
-
-          Give a score out of 10.
-
-          # Verdict
-
-          Choose one:
-          - Excellent
-          - Good
-          - Needs Improvement
-
-          IMPORTANT:
-          - Return valid Markdown
-          - Keep response concise
-          - Be beginner friendly
-        `;
-      }
-
-      // =====================================
-      // Gemini API Request
-      // =====================================
-      const geminiRes = await axios.post(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
-        {
-          contents: [
-            {
-              parts: [
-                {
-                  text: prompt
-                }
-              ]
-            }
-          ]
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      aiReview =
-        geminiRes.data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-        'No AI review generated.';
-
-    } catch (aiErr) {
-
-      console.error(
-        'Gemini review failed:',
-        JSON.stringify(aiErr.response?.data, null, 2)
-      );
-
-      aiReview = 'AI review unavailable right now.';
+Keep it beginner-friendly and concise.
+      `.trim();
     }
 
-    // =====================================
-    // Save Submission
-    // =====================================
-    const submission = await PracticeSubmission.create({
-      user: req.user._id,
+    const hint = await callGemini(prompt);
 
-      questionId,
-
-      questionTitle:
-        question || questionTitle,
-
-      code,
-      language,
-      output,
-
-      aiReview
-    });
-
-    // =====================================
-    // Response
-    // =====================================
-    res.status(201).json({
-      success: true,
-      isCorrectMCQ,
-      submission
-    });
-
+    res.json({ success: true, hint });
   } catch (err) {
-
-    console.error(err);
-
-    res.status(500).json({
-      success: false,
-      message: err.message
-    });
+    console.error('Analyze error:', err.response?.data || err.message);
+    res.status(500).json({ success: false, message: 'AI analysis failed.' });
   }
 });
 
+// =====================================
+// POST /api/practice/submit
+// Final submission of all 10 questions.
+// Saves to DB + generates overall AI review.
+// =====================================
+router.post('/submit', protect, async (req, res) => {
+  try {
+    const {
+      domain,
+      difficulty,
+      attempts, // Array of 10 question attempt objects
+    } = req.body;
+
+    if (!Array.isArray(attempts) || attempts.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No attempts provided.',
+      });
+    }
+
+    // ── Quick stats ────────────────────────────────────────────────────────
+    const correctMCQ = attempts.filter(
+      (a) => a.type === 'MCQ' && a.selectedAnswer === a.correctAnswer
+    ).length;
+
+    const attemptedCoding = attempts.filter(
+      (a) => a.type === 'CODING' && a.code && a.code.trim().length > 0
+    ).length;
+
+    // ── Build summary for overall AI review ───────────────────────────────
+    const summaryLines = attempts.map((a, i) => {
+      if (a.type === 'MCQ') {
+        const correct = a.selectedAnswer === a.correctAnswer;
+        return `Q${i + 1} [MCQ]: "${a.question}" — Selected: "${a.selectedAnswer || 'none'}" — ${correct ? '✓ Correct' : '✗ Wrong (correct: ' + a.correctAnswer + ')'}`;
+      } else {
+        const hasCode = a.code && a.code.trim().length > 0;
+        return `Q${i + 1} [CODING]: "${a.question}" — ${hasCode ? 'Code submitted (' + (a.language || 'unknown') + ')' : 'No code submitted'}`;
+      }
+    });
+
+    const overallPrompt = `
+You are an expert technical interviewer. A student just completed a 10-question practice session.
+
+# Domain: ${domain}
+# Difficulty: ${difficulty}
+
+# Session Summary
+${summaryLines.join('\n')}
+
+# Stats
+- MCQ correct: ${correctMCQ} / ${attempts.filter((a) => a.type === 'MCQ').length}
+- Coding questions attempted: ${attemptedCoding} / ${attempts.filter((a) => a.type === 'CODING').length}
+
+Give an overall review in this format:
+
+## Overall Performance
+(2-3 sentences summarising how they did)
+
+## Strengths
+(what they did well)
+
+## Areas to Improve
+(specific topics or skills to work on)
+
+## Score
+X / 10
+
+## Verdict
+Choose one: Excellent | Good | Needs Improvement
+
+Keep it encouraging and actionable.
+    `.trim();
+
+    let aiReview = '';
+    try {
+      aiReview = await callGemini(overallPrompt);
+    } catch (aiErr) {
+      console.error('Overall AI review failed:', aiErr.message);
+      aiReview = 'AI review unavailable right now.';
+    }
+
+    // ── Save to DB ─────────────────────────────────────────────────────────
+    const submission = await PracticeSubmission.create({
+      user: req.user._id,
+      domain,
+      difficulty,
+      attempts,
+      aiReview,
+      totalQuestions: attempts.length,
+      correctMCQ,
+      attemptedCoding,
+    });
+
+    res.status(201).json({
+      success: true,
+      submission,
+      stats: { correctMCQ, attemptedCoding, total: attempts.length },
+    });
+  } catch (err) {
+    console.error('Submit error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
 
 // =====================================
 // GET /api/practice/submissions
 // =====================================
 router.get('/submissions', protect, async (req, res) => {
-
   try {
-
-    const submissions = await PracticeSubmission
-      .find({ user: req.user._id })
+    const submissions = await PracticeSubmission.find({ user: req.user._id })
       .sort({ submittedAt: -1 });
 
-    res.json({
-      success: true,
-      submissions
-    });
-
+    res.json({ success: true, submissions });
   } catch (err) {
-
     console.error(err);
-
-    res.status(500).json({
-      success: false,
-      message: err.message
-    });
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
