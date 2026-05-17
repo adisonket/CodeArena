@@ -53,6 +53,68 @@ const Spinner = () => (
   }} />
 );
 
+function DocPreviewModal({ doc, onClose }) {
+  if (!doc) return null;
+  const url = doc.url || (doc.path ? `http://localhost:4000${doc.path}` : null);
+  if (!url) return null;
+  const isImage = /\.(jpg|jpeg|png)$/i.test(doc.name || "");
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, zIndex: 10000,
+        background: "rgba(0,0,0,0.75)", display: "flex",
+        alignItems: "center", justifyContent: "center", padding: 24,
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: COLORS.cardDark, borderRadius: 18, overflow: "hidden",
+          border: `1px solid ${COLORS.midPurple}`, width: "100%", maxWidth: 860,
+          display: "flex", flexDirection: "column",
+          maxHeight: "90vh", boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "14px 20px", borderBottom: `1px solid ${COLORS.midPurple}55`,
+          flexShrink: 0,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 18 }}>{isImage ? "🖼️" : "📄"}</span>
+            <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 12, color: "#fff", maxWidth: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {doc.name}
+            </span>
+          </div>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <a
+              href={url} target="_blank" rel="noreferrer"
+              style={{ fontSize: 11, color: COLORS.accent, fontFamily: "'Space Mono',monospace", border: `1px solid ${COLORS.accent}44`, padding: "4px 12px", borderRadius: 8, textDecoration: "none" }}
+            >
+              Open ↗
+            </a>
+            <button
+              onClick={onClose}
+              style={{ background: "none", border: `1px solid ${COLORS.grayMuted}44`, color: COLORS.grayMuted, borderRadius: 8, padding: "4px 12px", fontSize: 12, fontFamily: "'Space Mono',monospace", cursor: "pointer" }}
+            >
+              ✕ Close
+            </button>
+          </div>
+        </div>
+        {/* Preview body */}
+        <div style={{ flex: 1, overflow: "hidden", minHeight: 0 }}>
+          {isImage
+            ? <img src={url} alt={doc.name} style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
+            : <iframe src={url} title={doc.name} style={{ width: "100%", height: "75vh", border: "none", display: "block", background: "#fff" }} />
+          }
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Reusable components ───────────────────────────────────────────────────────
 function Toast({ message, type = "success", onDone }) {
   useEffect(() => {
@@ -281,6 +343,7 @@ function PersonalSection({ initialData, onSaved }) {
 
 // ── Education Section ─────────────────────────────────────────────────────────
 function EduCard({ edu, editing, onFieldChange, onDocUpload, onRemoveDoc, uploadingDocId }) {
+  const [previewDoc, setPreviewDoc] = useState(null);
   return (
     <div style={{
       border: editing ? `1.5px solid ${COLORS.accent}55` : `1px solid ${COLORS.midPurple}99`,
@@ -311,6 +374,12 @@ function EduCard({ edu, editing, onFieldChange, onDocUpload, onRemoveDoc, upload
             <span>📄</span>
             <span style={{ color: COLORS.green, fontFamily: "'Space Mono',monospace", fontSize: 11, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.name}</span>
             <span style={{ fontSize: 10, color: COLORS.grayMuted, flexShrink: 0 }}>{d.size}</span>
+            <button
+              onClick={() => setPreviewDoc(d)}
+              style={{ background: "none", border: `1px solid ${COLORS.accent}44`, color: COLORS.accent, cursor: "pointer", fontSize: 10, padding: "2px 8px", borderRadius: 6, fontFamily: "'Space Mono',monospace", flexShrink: 0 }}
+            >
+              Preview
+            </button>
             {editing && (
               <button onClick={() => onRemoveDoc(edu._id ? String(edu._id) : edu.tempId, d._id, i)} style={{ background: "none", border: "none", color: COLORS.red, cursor: "pointer", fontSize: 12, padding: 0, flexShrink: 0 }}>✕</button>
             )}
@@ -331,6 +400,7 @@ function EduCard({ edu, editing, onFieldChange, onDocUpload, onRemoveDoc, upload
           </p>
         )}
       </div>
+      <DocPreviewModal doc={previewDoc} onClose={() => setPreviewDoc(null)} />
     </div>
   );
 }
@@ -454,10 +524,14 @@ function ResumeSection({ initialData, onSaved }) {
   const [toast, setToast] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState(null);
+  const [previewDoc, setPreviewDoc] = useState(null);
 
   useEffect(() => {
     if (initialData?.resumeUrl) {
-      setResume({ name: initialData.resumeOriginalName || "Resume", url: initialData.resumeUrl });
+      const fullUrl = initialData.resumeUrl.startsWith("http")
+        ? initialData.resumeUrl
+        : `http://localhost:4000${initialData.resumeUrl}`;
+      setResume({ name: initialData.resumeOriginalName || "Resume", url: fullUrl });
     }
   }, [initialData]);
 
@@ -476,8 +550,10 @@ function ResumeSection({ initialData, onSaved }) {
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.message);
-      setResume({ name: json.originalName, size: json.size, url: json.resumeUrl });
-      setToast({ msg: "Resume uploaded!", type: "success" });
+      const fullUrl = json.resumeUrl.startsWith("http")
+        ? json.resumeUrl
+        : `http://localhost:4000${json.resumeUrl}`;
+      setResume({ name: json.originalName, size: json.size, url: fullUrl }); setToast({ msg: "Resume uploaded!", type: "success" });
       onSaved && onSaved();
     } catch (err) {
       setToast({ msg: err.message || "Upload failed", type: "error" });
@@ -566,7 +642,14 @@ function ResumeSection({ initialData, onSaved }) {
                 <p style={{ fontFamily: "'Space Mono',monospace", fontSize: 12, color: "#fff", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{resume.name}</p>
                 {resume.size && <p style={{ fontSize: 11, color: COLORS.grayMuted, marginTop: 3 }}>{resume.size}</p>}
               </div>
+
               <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  onClick={() => setPreviewDoc({ name: resume.name, url: resume.url })}
+                  style={{ fontSize: 11, color: COLORS.accent, fontFamily: "'Space Mono',monospace", border: `1px solid ${COLORS.accent}44`, padding: "4px 12px", borderRadius: 8, background: "none", cursor: "pointer" }}
+                >
+                  Preview
+                </button>
                 <label style={{ fontSize: 11, color: COLORS.accent, fontFamily: "'Space Mono',monospace", border: `1px solid ${COLORS.accent}44`, padding: "4px 12px", borderRadius: 8, cursor: "pointer" }}>
                   Replace <input type="file" style={{ display: "none" }} accept=".pdf,.docx" onChange={handleFile} />
                 </label>
@@ -669,12 +752,14 @@ function ResumeSection({ initialData, onSaved }) {
         )}
       </div>
       {toast && <Toast message={toast.msg} type={toast.type} onDone={() => setToast(null)} />}
+      <DocPreviewModal doc={previewDoc} onClose={() => setPreviewDoc(null)} />  
     </>
   );
 }
 
 // ── KYC Doc Upload Widget ─────────────────────────────────────────────────────
 function KycDocWidget({ label, docData, fieldName, editing, uploading, onUpload }) {
+  const [previewDoc, setPreviewDoc] = useState(null);
   const hasDoc = docData?.name && docData?.path;
   return (
     <div style={{ marginBottom: 4 }}>
@@ -688,6 +773,12 @@ function KycDocWidget({ label, docData, fieldName, editing, uploading, onUpload 
             <p style={{ fontFamily: "'Space Mono',monospace", fontSize: 11, color: COLORS.green, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{docData.name}</p>
             {docData.size && <p style={{ fontSize: 10, color: COLORS.grayMuted, margin: "2px 0 0" }}>{docData.size}</p>}
           </div>
+          <button
+            onClick={() => setPreviewDoc(docData)}
+            style={{ fontSize: 10, color: COLORS.accent, fontFamily: "'Space Mono',monospace", border: `1px solid ${COLORS.accent}44`, padding: "3px 10px", borderRadius: 6, background: "none", cursor: "pointer", flexShrink: 0 }}
+          >
+            Preview
+          </button>
           {editing && (
             <label style={{ fontSize: 11, color: COLORS.accent, fontFamily: "'Space Mono',monospace", border: `1px solid ${COLORS.accent}44`, padding: "4px 10px", borderRadius: 7, cursor: uploading === fieldName ? "not-allowed" : "pointer", flexShrink: 0 }}>
               {uploading === fieldName ? <Spinner /> : "Replace"}
@@ -711,6 +802,7 @@ function KycDocWidget({ label, docData, fieldName, editing, uploading, onUpload 
           </div>
         )
       )}
+      <DocPreviewModal doc={previewDoc} onClose={() => setPreviewDoc(null)} />
     </div>
   );
 }

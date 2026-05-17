@@ -333,13 +333,15 @@ export const completeSetup = async (req, res) => {
     // ── Step 2: Address ───────────────────────────────────────────────────────
     if (nationality?.trim()) user.nationality = nationality.trim();
 
-    user.address = {
-      state: state?.trim() || "",
-      district: district?.trim() || "",
-      pin: pin?.trim() || "",
-      locality: locality?.trim() || "",
-      postOffice: postOffice?.trim() || "",
-    };
+    if (state !== undefined || district !== undefined || pin !== undefined || locality !== undefined || postOffice !== undefined) {
+      user.address = {
+        state:      state?.trim()      || user.address?.state      || "",
+        district:   district?.trim()   || user.address?.district   || "",
+        pin:        pin?.trim()        || user.address?.pin        || "",
+        locality:   locality?.trim()   || user.address?.locality   || "",
+        postOffice: postOffice?.trim() || user.address?.postOffice || "",
+      };
+    }
 
     // ── Step 3: Education — push as new entry matching ProfileDashboard schema ─
     // Only add if at least degree or institution was provided
