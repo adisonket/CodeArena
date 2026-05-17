@@ -224,6 +224,7 @@ const createPrompt = ({
   count,
   language,
   starterCode,
+  aiPrompt,
 }) => {
 
   // CODING QUESTIONS
@@ -231,7 +232,9 @@ const createPrompt = ({
   if (type === "CODING") {
 
     return `
-Generate ${count} unique ${difficulty} coding interview questions for ${domain}.
+    ${aiPrompt || ""}
+    
+    Generate ${count} unique ${difficulty} coding interview questions for ${domain}.
 
 Rules:
 - Return ONLY valid JSON
@@ -254,7 +257,9 @@ Format:
   // MCQ QUESTIONS
 
   return `
-Generate ${count} unique ${difficulty} MCQ interview questions for ${domain}.
+  ${aiPrompt || ""}
+  
+  Generate ${count} unique ${difficulty} MCQ interview questions for ${domain}.
 
 Rules:
 - Return ONLY valid JSON
@@ -337,6 +342,7 @@ async ({
   difficulty,
   type,
   count,
+  aiPrompt,
 }) => {
 
   try {
@@ -373,7 +379,7 @@ async ({
           remaining
         );
 
-      const prompt =
+        const prompt =
         createPrompt({
           domain,
           difficulty,
@@ -382,6 +388,7 @@ async ({
             currentBatchSize,
           language,
           starterCode,
+          aiPrompt,
         });
 
       requests.push(

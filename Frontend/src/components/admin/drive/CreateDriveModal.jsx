@@ -303,16 +303,57 @@ const CreateDriveModal = ({
         setErrors({}); setStep(3);
     };
 
-    const handleAutoFill = () => {
-        console.log("Auto fill clicked");
+    const handleAutoFill = async () => {
+
+        try {
+    
+            setGenerating(true);
+    
+            const response = await axios.post(
+                "http://localhost:4000/api/ai/generate-drive-prompt",
+                {
+                    title: form.title,
+                    tag: form.tag,
+                    type: form.type,
+                    difficulty: form.difficulty,
+                    duration: form.duration,
+                    mcqCount: form.mcqCount,
+                    codeCount: form.codeCount,
+                    marksPerMcq: form.marksPerMcq,
+                    marksPerCode: form.marksPerCode,
+                }
+            );
+    
+            if (response.data.success) {
+    
+                setForm((prev) => ({
+                    ...prev,
+                    aiPrompt:
+                        response.data.prompt,
+                }));
+            }
+    
+        } catch (error) {
+    
+            console.log(error);
+    
+        } finally {
+    
+            setGenerating(false);
+        }
     };
 
     const handleGenerate = async () => {
-        if (!form.aiPrompt.trim()) return;
+
         setGenerating(true);
-        await new Promise(r => setTimeout(r, 1200));
+    
+        await new Promise((r) =>
+            setTimeout(r, 1200)
+        );
+    
         setGenerating(false);
-        handleSave();
+    
+        setStep(4);
     };
 
     const handleSave = async () => {
@@ -366,21 +407,21 @@ const CreateDriveModal = ({
     
                 const newDrive = {
     
-                    _id: res.data.drive._id,
+                    _id: response.data.drive._id,
     
-                    title: res.data.drive.hiringPositionName,
+                    title: response.data.drive.hiringPositionName,
     
-                    tag: res.data.drive.driveType,
+                    tag: response.data.drive.driveType,
     
                     status: "Draft",
     
                     visibility: "Private",
     
-                    type: res.data.drive.driveType,
+                    type: response.data.drive.driveType,
     
-                    startDate: res.data.drive.driveDate,
+                    startDate: response.data.drive.driveDate,
     
-                    endDate: res.data.drive.driveDate,
+                    endDate: response.data.drive.driveDate,
     
                     totalCandidates: 0,
     
@@ -391,26 +432,26 @@ const CreateDriveModal = ({
                     topScore: 0,
     
                     duration:
-                        res.data.drive.timeDurationInMin,
+                        response.data.drive.timeDurationInMin,
     
                     questionCount:
-                        res.data.drive.mcqCount +
-                        res.data.drive.codeCount,
+                        response.data.drive.mcqCount +
+                        response.data.drive.codeCount,
     
                     mcqCount:
-                        res.data.drive.mcqCount,
+                        response.data.drive.mcqCount,
     
                     codeCount:
-                        res.data.drive.codeCount,
+                        response.data.drive.codeCount,
     
                     marksPerMcq:
-                        res.data.drive.mcqMarks,
+                        response.data.drive.mcqMarks,
     
                     marksPerCode:
-                        res.data.drive.codeMarks,
+                        response.data.drive.codeMarks,
     
                     createdAt:
-                        res.data.drive.createdAt,
+                        response.data.drive.createdAt,
     
                     difficulty: form.difficulty,
     
@@ -421,11 +462,9 @@ const CreateDriveModal = ({
     
                 setDone(true);
     
-                onSave(response.data.drive);
-    
-                setTimeout(() => {
-                    onClose();
-                }, 900);
+                onSave(newDrive);
+
+                onClose();
             }
     
         } catch (error) {
@@ -746,15 +785,43 @@ const CreateDriveModal = ({
 
                                 {/* Auto-fill button */}
                                 <motion.button
-                                    whileHover={{ scale:1.01 }} whileTap={{ scale:0.98 }}
+                                    whileHover={{ scale: 1.01 }}
+                                    whileTap={{ scale: 0.98 }}
                                     onClick={handleAutoFill}
-                                    disabled={false}
+                                    disabled={
+                                        generating ||
+                                        !form.title ||
+                                        !form.tag ||
+                                        !form.duration
+                                    }
                                     className="w-full py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 border border-indigo-500/30 transition disabled:opacity-50"
-                                    style={{ background:"rgba(99,102,241,0.1)", color:"#a5b4fc" }}>
-                                    <>
-                                        <Sparkles size={13} />
-                                        Auto AI Fill - Generate from Drive Details
-                                    </>
+                                    style={{
+                                        background: "rgba(99,102,241,0.1)",
+                                        color: "#a5b4fc"
+                                    }}
+                                >
+
+                                    {generating ? (
+                                        <>
+                                            <motion.div
+                                                animate={{ rotate: 360 }}
+                                                transition={{
+                                                    repeat: Infinity,
+                                                    duration: 0.7,
+                                                    ease: "linear"
+                                                }}
+                                                className="w-3.5 h-3.5 rounded-full border-2 border-indigo-300/30 border-t-indigo-200"
+                                            />
+
+                                            Generating Prompt...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Sparkles size={13} />
+                                            Auto AI Fill - Generate from Drive Details
+                                        </>
+                                    )}
+
                                 </motion.button>
 
                                 

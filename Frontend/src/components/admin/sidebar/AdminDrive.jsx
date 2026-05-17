@@ -31,7 +31,16 @@ const DIFF_STYLE = {
     Hard:         { cls: "text-rose-400",    bg: "rgba(248,113,113,0.08)", border: "rgba(248,113,113,0.2)" },
 };
 const TAG_COLORS = ["#6366f1","#8b5cf6","#a855f7","#ec4899","#f59e0b","#10b981","#0ea5e9"];
-const tagColor   = (s) => TAG_COLORS[s.charCodeAt(0) % TAG_COLORS.length];
+const tagColor = (s) => {
+
+    if (!s || typeof s !== "string") {
+        return TAG_COLORS[0];
+    }
+
+    return TAG_COLORS[
+        s.charCodeAt(0) % TAG_COLORS.length
+    ];
+};
 const fmt        = (iso) => new Date(iso).toLocaleDateString("en-US", { day:"numeric", month:"short", year:"numeric" });
 const scoreColor = (s) => s >= 85 ? "#4ade80" : s >= 70 ? "#facc15" : s > 0 ? "#f87171" : "#374151";
 const daysLeft   = (end) => { const d = Math.ceil((new Date(end) - Date.now()) / 86400000); return d > 0 ? `${d}d left` : "Ended"; };

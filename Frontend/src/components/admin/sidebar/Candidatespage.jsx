@@ -111,7 +111,12 @@ const MiniBar = ({ pct, color }) => (
 );
 
 // ── Candidate Detail Drawer ────────────────────────────────────────────────────
-const CandidateDrawer = ({ candidate, onClose }) => {
+const CandidateDrawer = ({
+    candidate,
+    onClose,
+    setShowDeleteModal,
+    setDeleteCandidateData,
+}) => {
     if (!candidate) return null;
     const st = statusStyle[candidate.status] ?? statusStyle["Active"];
 
@@ -477,17 +482,57 @@ const CandidateDrawer = ({ candidate, onClose }) => {
 
                 </div>
 
-                {/* drawer footer actions */}
-                <div className="px-6 py-4 border-t border-white/6 flex gap-2 sticky bottom-0"
-                    style={{ background: "rgba(12,9,24,0.95)" }}>
-                    <button className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold border border-white/8 text-white/50 hover:bg-white/5 hover:text-white transition">
-                        <Eye size={13} /> View Full Profile
-                    </button>
-                    <button className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold text-white transition"
-                        style={{ background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}>
-                        <UserCheck size={13} /> Shortlist
-                    </button>
-                </div>
+                    {/* drawer footer actions */}
+
+                    <div
+                        className="px-6 py-4 border-t border-white/6 flex gap-2 sticky bottom-0"
+                        style={{
+                            background:
+                                "rgba(12,9,24,0.95)"
+                        }}
+                    >
+
+                        {/* shortlist */}
+
+                        <button
+                            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold text-white transition hover:scale-[1.01]"
+                            style={{
+                                background:
+                                    "linear-gradient(135deg,#6366f1,#8b5cf6)",
+                                boxShadow:
+                                    "0 10px 30px rgba(99,102,241,0.18)",
+                            }}
+                        >
+                            <UserCheck size={13} />
+                            Shortlist
+                        </button>
+
+                        {/* delete */}
+
+                        <button
+                            onClick={() => {
+
+                                setDeleteCandidateData(
+                                    candidate
+                                );
+
+                                setShowDeleteModal(
+                                    true
+                                );
+                            }}
+                            className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-semibold text-white transition hover:scale-[1.01]"
+                            style={{
+                                background:
+                                    "linear-gradient(135deg,#ef4444,#f43f5e)",
+                                boxShadow:
+                                    "0 10px 30px rgba(244,63,94,0.18)",
+                            }}
+                        >
+                            <UserX size={13} />
+                            Delete
+                        </button>
+
+                    </div>
             </motion.aside>
         </AnimatePresence>
         </>
@@ -524,7 +569,9 @@ const CandidatesPage = () => {
     const [selected, setSelected] = useState(null);
     const [sortBy, setSortBy] = useState("name");
     const [candidates, setCandidates] = useState([]);
-
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteCandidateData, setDeleteCandidateData] = useState(null);
+    const [deleteLoading, setDeleteLoading] = useState(false);
     const statuses = ["All", "Active", "On-Hold", "Completed"];
 
     useEffect(() => {
@@ -576,6 +623,42 @@ const CandidatesPage = () => {
               candidates.length
           )
         : 0;
+
+        const deleteCandidate = async () => {
+
+            if (!deleteCandidateData) return;
+        
+            try {
+        
+                setDeleteLoading(true);
+        
+                await axios.delete(
+                    `http://localhost:4000/api/candidates/${deleteCandidateData._id}`
+                );
+        
+                setCandidates((prev) =>
+                    prev.filter(
+                        (c) =>
+                            c._id !==
+                            deleteCandidateData._id
+                    )
+                );
+        
+                setShowDeleteModal(false);
+        
+                setDeleteCandidateData(null);
+        
+                setSelected(null);
+        
+            } catch (error) {
+        
+                console.log(error);
+        
+            } finally {
+        
+                setDeleteLoading(false);
+            }
+        };
 
     const exportCSV = () => {
 
@@ -823,8 +906,234 @@ const CandidatesPage = () => {
                     </div>
                 </div>
 
+                <AnimatePresence>
+
+                    {showDeleteModal &&
+                        deleteCandidateData && (
+
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="fixed inset-0 z-[130] flex items-center justify-center p-4"
+                                style={{
+                                    background:
+                                        "radial-gradient(circle at top, rgba(99,102,241,0.12), rgba(0,0,0,0.88))",
+                                    backdropFilter:
+                                        "blur(18px)",
+                                }}
+                            >
+
+                                <motion.div
+                                    initial={{
+                                        opacity: 0,
+                                        scale: 0.92,
+                                        y: 24,
+                                    }}
+                                    animate={{
+                                        opacity: 1,
+                                        scale: 1,
+                                        y: 0,
+                                    }}
+                                    exit={{
+                                        opacity: 0,
+                                        scale: 0.92,
+                                        y: 24,
+                                    }}
+                                    transition={{
+                                        type: "spring",
+                                        stiffness: 260,
+                                        damping: 22,
+                                    }}
+                                    className="relative w-full max-w-lg overflow-hidden rounded-[32px] border border-white/10"
+                                    style={{
+                                        background:
+                                            "linear-gradient(180deg, rgba(12,12,24,0.96), rgba(18,18,32,0.98))",
+                                        boxShadow:
+                                            "0 20px 80px rgba(0,0,0,0.55)",
+                                    }}
+                                >
+
+                                    <div className="px-7 pt-7 pb-6 border-b border-white/6">
+
+                                        <div className="flex items-start gap-5">
+
+                                            <div
+                                                className="w-16 h-16 rounded-3xl flex items-center justify-center shrink-0"
+                                                style={{
+                                                    background:
+                                                        "linear-gradient(135deg, rgba(244,63,94,0.18), rgba(225,29,72,0.08))",
+                                                    border:
+                                                        "1px solid rgba(244,63,94,0.24)",
+                                                }}
+                                            >
+                                                <UserX
+                                                    size={24}
+                                                    className="text-rose-400"
+                                                />
+                                            </div>
+
+                                            <div>
+
+                                                <p className="text-rose-400 text-xs font-semibold uppercase tracking-[0.18em]">
+                                                    Danger Zone
+                                                </p>
+
+                                                <h2 className="text-white text-2xl font-bold mt-2">
+                                                    Delete Candidate
+                                                </h2>
+
+                                                <p className="text-white/40 text-sm leading-relaxed mt-2">
+                                                    This action permanently removes the candidate account and interview history.
+                                                </p>
+
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* candidate card */}
+
+                                    <div className="px-7 py-6">
+
+                                        <div
+                                            className="rounded-3xl border border-white/8 p-5"
+                                            style={{
+                                                background:
+                                                    "linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))",
+                                            }}
+                                        >
+
+                                            <div className="flex items-center gap-4">
+
+                                                <Avatar
+                                                    candidate={
+                                                        deleteCandidateData
+                                                    }
+                                                    size={52}
+                                                />
+
+                                                <div className="flex-1">
+
+                                                    <h3 className="text-white font-semibold text-lg">
+                                                        {
+                                                            deleteCandidateData.firstName
+                                                        }{" "}
+                                                        {
+                                                            deleteCandidateData.lastName
+                                                        }
+                                                    </h3>
+
+                                                    <p className="text-white/35 text-sm mt-1">
+                                                        {
+                                                            deleteCandidateData.email
+                                                        }
+                                                    </p>
+
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-3 gap-3 mt-6">
+
+                                                {[
+                                                    {
+                                                        label:
+                                                            "Avg Score",
+                                                        value:
+                                                            deleteCandidateData.avgScore,
+                                                    },
+                                                    {
+                                                        label:
+                                                            "Drives",
+                                                        value:
+                                                            deleteCandidateData.totalDrives,
+                                                    },
+                                                    {
+                                                        label:
+                                                            "Status",
+                                                        value:
+                                                            deleteCandidateData.status,
+                                                    },
+                                                ].map((item) => (
+
+                                                    <div
+                                                        key={
+                                                            item.label
+                                                        }
+                                                        className="rounded-2xl border border-white/6 p-3"
+                                                        style={{
+                                                            background:
+                                                                "rgba(255,255,255,0.025)",
+                                                        }}
+                                                    >
+                                                        <p className="text-white/25 text-[10px] uppercase tracking-wider">
+                                                            {
+                                                                item.label
+                                                            }
+                                                        </p>
+
+                                                        <p className="text-white font-bold text-lg mt-1">
+                                                            {
+                                                                item.value
+                                                            }
+                                                        </p>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* footer */}
+
+                                    <div className="px-7 py-5 border-t border-white/6 flex items-center justify-end gap-3">
+
+                                        <button
+                                            onClick={() =>
+                                                setShowDeleteModal(
+                                                    false
+                                                )
+                                            }
+                                            className="px-5 py-2.5 rounded-2xl text-sm font-semibold border border-white/10 text-white/60 hover:bg-white/5 hover:text-white transition"
+                                        >
+                                            Cancel
+                                        </button>
+
+                                        <button
+                                            onClick={
+                                                deleteCandidate
+                                            }
+                                            disabled={
+                                                deleteLoading
+                                            }
+                                            className="px-6 py-2.5 rounded-2xl text-sm font-semibold text-white disabled:opacity-50 transition"
+                                            style={{
+                                                background:
+                                                    "linear-gradient(135deg,#ef4444,#f43f5e)",
+                                            }}
+                                        >
+                                            {deleteLoading
+                                                ? "Deleting..."
+                                                : "Delete Candidate"}
+                                        </button>
+
+                                    </div>
+
+                                </motion.div>
+                            </motion.div>
+                        )}
+
+                </AnimatePresence>
+
                 {/* detail drawer */}
-                <CandidateDrawer candidate={selected} onClose={() => setSelected(null)} />
+                <CandidateDrawer
+                    candidate={selected}
+                    onClose={() => setSelected(null)}
+                    setShowDeleteModal={
+                        setShowDeleteModal
+                    }
+                    setDeleteCandidateData={
+                        setDeleteCandidateData
+                    }
+                />
             </div>
         </>
         
