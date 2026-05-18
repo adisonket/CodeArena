@@ -23,7 +23,6 @@ const EMPTY_EDU = {
   year: "", cgpa: "", current: false, docs: [],
 };
 
-// ── Auth header helper ────────────────────────────────────────────────────────
 const authHeader = () => ({
   "Content-Type": "application/json",
   Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -42,6 +41,120 @@ const CheckIcon = ({ size = 14 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
     stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
+const FileIcon = ({ size = 16, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+    stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+  </svg>
+);
+
+const ImageIcon = ({ size = 16, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+    stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+    <circle cx="8.5" cy="8.5" r="1.5" />
+    <polyline points="21 15 16 10 5 21" />
+  </svg>
+);
+
+const UploadIcon = ({ size = 16, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+    stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="16 16 12 12 8 16" />
+    <line x1="12" y1="12" x2="12" y2="21" />
+    <path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3" />
+  </svg>
+);
+
+const FolderOpenIcon = ({ size = 16, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+    stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+  </svg>
+);
+
+const UserIcon = ({ size = 16, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+    stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
+
+const GraduationCapIcon = ({ size = 16, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+    stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+    <path d="M6 12v5c3 3 9 3 12 0v-5" />
+  </svg>
+);
+
+const IdCardIcon = ({ size = 16, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+    stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="5" width="20" height="14" rx="2" />
+    <circle cx="8" cy="12" r="2" />
+    <path d="M14 9h4M14 12h4M14 15h2" />
+  </svg>
+);
+
+const LockIcon = ({ size = 14, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+    stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0110 0v4" />
+  </svg>
+);
+
+const CameraIcon = ({ size = 18, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+    stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+    <circle cx="12" cy="13" r="4" />
+  </svg>
+);
+
+const CircleCheckIcon = ({ size = 10, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+    stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+    <polyline points="22 4 12 14.01 9 11.01" />
+  </svg>
+);
+
+const CircleHalfIcon = ({ size = 10, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+    stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <path d="M12 2v20" />
+  </svg>
+);
+
+const CircleDotIcon = ({ size = 8, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={color}
+    stroke={color} strokeWidth="2">
+    <circle cx="12" cy="12" r="10" />
+  </svg>
+);
+
+const ArrowRightIcon = ({ size = 12, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+    stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="5" y1="12" x2="19" y2="12" />
+    <polyline points="12 5 19 12 12 19" />
+  </svg>
+);
+
+const ExternalLinkIcon = ({ size = 12, color = "currentColor" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+    stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+    <polyline points="15 3 21 3 21 9" />
+    <line x1="10" y1="14" x2="21" y2="3" />
   </svg>
 );
 
@@ -76,14 +189,15 @@ function DocPreviewModal({ doc, onClose }) {
           maxHeight: "90vh", boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
         }}
       >
-        {/* Header */}
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
           padding: "14px 20px", borderBottom: `1px solid ${COLORS.midPurple}55`,
           flexShrink: 0,
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 18 }}>{isImage ? "🖼️" : "📄"}</span>
+            <span style={{ color: COLORS.accent, display: "flex" }}>
+              {isImage ? <ImageIcon size={18} color={COLORS.accent} /> : <FileIcon size={18} color={COLORS.accent} />}
+            </span>
             <span style={{ fontFamily: "'Space Mono',monospace", fontSize: 12, color: "#fff", maxWidth: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {doc.name}
             </span>
@@ -91,9 +205,9 @@ function DocPreviewModal({ doc, onClose }) {
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
             <a
               href={url} target="_blank" rel="noreferrer"
-              style={{ fontSize: 11, color: COLORS.accent, fontFamily: "'Space Mono',monospace", border: `1px solid ${COLORS.accent}44`, padding: "4px 12px", borderRadius: 8, textDecoration: "none" }}
+              style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: COLORS.accent, fontFamily: "'Space Mono',monospace", border: `1px solid ${COLORS.accent}44`, padding: "4px 12px", borderRadius: 8, textDecoration: "none" }}
             >
-              Open ↗
+              Open <ExternalLinkIcon size={11} color={COLORS.accent} />
             </a>
             <button
               onClick={onClose}
@@ -103,7 +217,6 @@ function DocPreviewModal({ doc, onClose }) {
             </button>
           </div>
         </div>
-        {/* Preview body */}
         <div style={{ flex: 1, overflow: "hidden", minHeight: 0 }}>
           {isImage
             ? <img src={url} alt={doc.name} style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
@@ -115,7 +228,6 @@ function DocPreviewModal({ doc, onClose }) {
   );
 }
 
-// ── Reusable components ───────────────────────────────────────────────────────
 function Toast({ message, type = "success", onDone }) {
   useEffect(() => {
     const t = setTimeout(onDone, 2800);
@@ -131,7 +243,7 @@ function Toast({ message, type = "success", onDone }) {
       alignItems: "center", gap: 8, zIndex: 9999,
       boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
     }}>
-      {type === "success" ? "✓" : "✕"} {message}
+      {type === "success" ? <CheckIcon size={12} /> : "✕"} {message}
     </div>
   );
 }
@@ -351,8 +463,8 @@ function EduCard({ edu, editing, onFieldChange, onDocUpload, onRemoveDoc, upload
       background: editing ? `${COLORS.accent}05` : "transparent", transition: "all 0.2s",
     }}>
       {edu.current && (
-        <span style={{ position: "absolute", top: 12, right: 12, background: `${COLORS.green}22`, color: COLORS.green, fontSize: 9, fontFamily: "'Space Mono',monospace", padding: "3px 10px", borderRadius: 99, border: `1px solid ${COLORS.green}44` }}>
-          ● Current
+        <span style={{ position: "absolute", top: 12, right: 12, background: `${COLORS.green}22`, color: COLORS.green, fontSize: 9, fontFamily: "'Space Mono',monospace", padding: "3px 10px", borderRadius: 99, border: `1px solid ${COLORS.green}44`, display: "flex", alignItems: "center", gap: 4 }}>
+          <CircleDotIcon size={6} color={COLORS.green} /> Current
         </span>
       )}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 14px" }}>
@@ -371,7 +483,7 @@ function EduCard({ edu, editing, onFieldChange, onDocUpload, onRemoveDoc, upload
         </label>
         {edu.docs.map((d, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, background: `${COLORS.cardDark}99`, padding: "7px 12px", borderRadius: 9, border: `1px solid ${COLORS.midPurple}44`, marginBottom: 6, fontSize: 12 }}>
-            <span>📄</span>
+            <FileIcon size={14} color={COLORS.green} />
             <span style={{ color: COLORS.green, fontFamily: "'Space Mono',monospace", fontSize: 11, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.name}</span>
             <span style={{ fontSize: 10, color: COLORS.grayMuted, flexShrink: 0 }}>{d.size}</span>
             <button
@@ -389,7 +501,7 @@ function EduCard({ edu, editing, onFieldChange, onDocUpload, onRemoveDoc, upload
           <label style={{ display: "flex", alignItems: "center", gap: 8, border: `2px dashed ${COLORS.accent}66`, borderRadius: 10, padding: "9px 14px", cursor: uploadingDocId === (edu._id ? String(edu._id) : edu.tempId) ? "not-allowed" : "pointer", fontSize: 12, color: COLORS.grayMuted, marginTop: 4, transition: "border 0.2s", opacity: uploadingDocId === (edu._id ? String(edu._id) : edu.tempId) ? 0.6 : 1 }}>
             {uploadingDocId === (edu._id ? String(edu._id) : edu.tempId)
               ? <><Spinner /><span style={{ color: COLORS.accent, fontFamily: "'Space Mono',monospace", fontSize: 11 }}>Uploading...</span></>
-              : <><span style={{ color: COLORS.accent, fontFamily: "'Space Mono',monospace", fontSize: 11 }}>↑ Upload PDF</span><span style={{ marginLeft: "auto", fontSize: 10 }}>PDF only</span></>
+              : <><UploadIcon size={14} color={COLORS.accent} /><span style={{ color: COLORS.accent, fontFamily: "'Space Mono',monospace", fontSize: 11 }}>Upload PDF</span><span style={{ marginLeft: "auto", fontSize: 10 }}>PDF only</span></>
             }
             <input type="file" style={{ display: "none" }} accept=".pdf" onChange={e => onDocUpload(edu._id ? String(edu._id) : edu.tempId, e)} disabled={uploadingDocId === (edu._id ? String(edu._id) : edu.tempId)} />
           </label>
@@ -553,7 +665,8 @@ function ResumeSection({ initialData, onSaved }) {
       const fullUrl = json.resumeUrl.startsWith("http")
         ? json.resumeUrl
         : `http://localhost:4000${json.resumeUrl}`;
-      setResume({ name: json.originalName, size: json.size, url: fullUrl }); setToast({ msg: "Resume uploaded!", type: "success" });
+      setResume({ name: json.originalName, size: json.size, url: fullUrl });
+      setToast({ msg: "Resume uploaded!", type: "success" });
       onSaved && onSaved();
     } catch (err) {
       setToast({ msg: err.message || "Upload failed", type: "error" });
@@ -627,7 +740,9 @@ function ResumeSection({ initialData, onSaved }) {
               {uploading
                 ? <><Spinner /><p style={{ fontFamily: "'Space Mono',monospace", fontSize: 12, color: COLORS.accent, marginTop: 12 }}>Uploading...</p></>
                 : <>
-                  <div style={{ width: 56, height: 56, borderRadius: 14, background: `${COLORS.midPurple}88`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16, fontSize: 24 }}>📄</div>
+                  <div style={{ width: 56, height: 56, borderRadius: 14, background: `${COLORS.midPurple}88`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+                    <FileIcon size={26} color={COLORS.accent} />
+                  </div>
                   <p style={{ fontFamily: "'Space Mono',monospace", fontSize: 13, color: "#fff", margin: 0 }}>Drag & drop your resume</p>
                   <p style={{ fontSize: 12, color: COLORS.grayMuted, marginTop: 6 }}>or <span style={{ color: COLORS.accent }}>browse to upload</span></p>
                   <p style={{ fontSize: 10, color: COLORS.grayMuted, marginTop: 10, fontFamily: "'Space Mono',monospace" }}>PDF, DOCX up to 5MB</p>
@@ -637,12 +752,13 @@ function ResumeSection({ initialData, onSaved }) {
             </label>
           ) : (
             <div style={{ border: `1px solid ${COLORS.green}44`, borderRadius: 14, padding: 16, background: `${COLORS.cardDark}88`, display: "flex", alignItems: "center", gap: 14 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 10, background: `${COLORS.green}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>📄</div>
+              <div style={{ width: 42, height: 42, borderRadius: 10, background: `${COLORS.green}22`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <FileIcon size={20} color={COLORS.green} />
+              </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontFamily: "'Space Mono',monospace", fontSize: 12, color: "#fff", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{resume.name}</p>
                 {resume.size && <p style={{ fontSize: 11, color: COLORS.grayMuted, marginTop: 3 }}>{resume.size}</p>}
               </div>
-
               <div style={{ display: "flex", gap: 8 }}>
                 <button
                   onClick={() => setPreviewDoc({ name: resume.name, url: resume.url })}
@@ -661,8 +777,8 @@ function ResumeSection({ initialData, onSaved }) {
           <div style={{ marginTop: 20, padding: 16, borderRadius: 12, background: `${COLORS.accent}0D`, border: `1px solid ${COLORS.accent}22` }}>
             <p style={{ fontSize: 10, color: COLORS.accent, fontFamily: "'Space Mono',monospace", letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>Resume Tips</p>
             {["Keep your resume to 1–2 pages maximum", "Highlight projects, GitHub links, and measurable results", "Use consistent formatting and clear section headers", "Our AI will analyze your resume and suggest improvements"].map((tip, i) => (
-              <p key={i} style={{ fontSize: 12, color: COLORS.grayMuted, margin: "0 0 6px" }}>
-                <span style={{ color: COLORS.accent }}>▸ </span>{tip}
+              <p key={i} style={{ fontSize: 12, color: COLORS.grayMuted, margin: "0 0 6px", display: "flex", alignItems: "flex-start", gap: 6 }}>
+                <ArrowRightIcon size={11} color={COLORS.accent} style={{ flexShrink: 0, marginTop: 2 }} />{tip}
               </p>
             ))}
           </div>
@@ -717,14 +833,18 @@ function ResumeSection({ initialData, onSaved }) {
               <div style={{ padding: 14, background: `${COLORS.green}0D`, border: `1px solid ${COLORS.green}22`, borderRadius: 12 }}>
                 <p style={{ fontSize: 10, color: COLORS.green, fontFamily: "'Space Mono',monospace", letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>Strengths</p>
                 {(analysis.strengths || []).map((s, i) => (
-                  <p key={i} style={{ fontSize: 12, color: "#e2e8f0", margin: "0 0 6px" }}><span style={{ color: COLORS.green }}>✓ </span>{s}</p>
+                  <p key={i} style={{ fontSize: 12, color: "#e2e8f0", margin: "0 0 6px", display: "flex", alignItems: "flex-start", gap: 6 }}>
+                    <CheckIcon size={12} color={COLORS.green} style={{ flexShrink: 0, marginTop: 2 }} />{s}
+                  </p>
                 ))}
               </div>
               <div style={{ padding: 14, background: `${COLORS.amber}0D`, border: `1px solid ${COLORS.amber}22`, borderRadius: 12 }}>
                 <p style={{ fontSize: 10, color: COLORS.amber, fontFamily: "'Space Mono',monospace", letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>Improvements</p>
                 {(analysis.improvements || []).map((item, i) => (
                   <div key={i} style={{ marginBottom: 8 }}>
-                    <p style={{ fontSize: 12, color: COLORS.amber, margin: "0 0 2px", fontWeight: 600 }}>▸ {item.issue}</p>
+                    <p style={{ fontSize: 12, color: COLORS.amber, margin: "0 0 2px", fontWeight: 600, display: "flex", alignItems: "flex-start", gap: 6 }}>
+                      <ArrowRightIcon size={11} color={COLORS.amber} style={{ flexShrink: 0, marginTop: 2 }} />{item.issue}
+                    </p>
                     <p style={{ fontSize: 11, color: COLORS.grayMuted, margin: 0 }}>{item.detail}</p>
                   </div>
                 ))}
@@ -734,7 +854,9 @@ function ResumeSection({ initialData, onSaved }) {
               <div style={{ marginBottom: 20, padding: 14, background: `${COLORS.cardDark}88`, border: `1px solid ${COLORS.midPurple}`, borderRadius: 12 }}>
                 <p style={{ fontSize: 10, color: COLORS.accent, fontFamily: "'Space Mono',monospace", letterSpacing: 1, textTransform: "uppercase", marginBottom: 10 }}>ATS Optimisation Tips</p>
                 {analysis.atsTips.map((tip, i) => (
-                  <p key={i} style={{ fontSize: 12, color: COLORS.grayMuted, margin: "0 0 6px" }}><span style={{ color: COLORS.accent }}>▸ </span>{tip}</p>
+                  <p key={i} style={{ fontSize: 12, color: COLORS.grayMuted, margin: "0 0 6px", display: "flex", alignItems: "flex-start", gap: 6 }}>
+                    <ArrowRightIcon size={11} color={COLORS.accent} style={{ flexShrink: 0, marginTop: 2 }} />{tip}
+                  </p>
                 ))}
               </div>
             )}
@@ -752,7 +874,7 @@ function ResumeSection({ initialData, onSaved }) {
         )}
       </div>
       {toast && <Toast message={toast.msg} type={toast.type} onDone={() => setToast(null)} />}
-      <DocPreviewModal doc={previewDoc} onClose={() => setPreviewDoc(null)} />  
+      <DocPreviewModal doc={previewDoc} onClose={() => setPreviewDoc(null)} />
     </>
   );
 }
@@ -761,6 +883,7 @@ function ResumeSection({ initialData, onSaved }) {
 function KycDocWidget({ label, docData, fieldName, editing, uploading, onUpload }) {
   const [previewDoc, setPreviewDoc] = useState(null);
   const hasDoc = docData?.name && docData?.path;
+  const isImage = docData?.name && /\.(jpg|jpeg|png)$/i.test(docData.name);
   return (
     <div style={{ marginBottom: 4 }}>
       <label style={{ fontSize: 10, display: "block", marginBottom: 8, letterSpacing: 1, textTransform: "uppercase", fontFamily: "'Space Mono',monospace", color: editing ? COLORS.accent : COLORS.grayMuted }}>
@@ -768,7 +891,9 @@ function KycDocWidget({ label, docData, fieldName, editing, uploading, onUpload 
       </label>
       {hasDoc ? (
         <div style={{ display: "flex", alignItems: "center", gap: 10, background: `${COLORS.green}0D`, border: `1px solid ${COLORS.green}33`, borderRadius: 10, padding: "9px 14px" }}>
-          <span style={{ fontSize: 16 }}>{docData.name.endsWith(".pdf") ? "📄" : "🖼️"}</span>
+          <span style={{ display: "flex", flexShrink: 0 }}>
+            {isImage ? <ImageIcon size={16} color={COLORS.green} /> : <FileIcon size={16} color={COLORS.green} />}
+          </span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ fontFamily: "'Space Mono',monospace", fontSize: 11, color: COLORS.green, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{docData.name}</p>
             {docData.size && <p style={{ fontSize: 10, color: COLORS.grayMuted, margin: "2px 0 0" }}>{docData.size}</p>}
@@ -791,13 +916,13 @@ function KycDocWidget({ label, docData, fieldName, editing, uploading, onUpload 
           <label style={{ display: "flex", alignItems: "center", gap: 8, border: `2px dashed ${uploading === fieldName ? COLORS.accent : `${COLORS.accent}55`}`, borderRadius: 10, padding: "10px 14px", cursor: uploading === fieldName ? "not-allowed" : "pointer", opacity: uploading === fieldName ? 0.7 : 1, transition: "all 0.2s" }}>
             {uploading === fieldName
               ? <><Spinner /><span style={{ fontSize: 11, color: COLORS.accent, fontFamily: "'Space Mono',monospace" }}>Uploading...</span></>
-              : <><span style={{ fontSize: 18 }}>↑</span><span style={{ fontSize: 11, color: COLORS.accent, fontFamily: "'Space Mono',monospace" }}>Upload {label} Document</span><span style={{ marginLeft: "auto", fontSize: 10, color: COLORS.grayMuted }}>JPG, PNG, PDF</span></>
+              : <><UploadIcon size={16} color={COLORS.accent} /><span style={{ fontSize: 11, color: COLORS.accent, fontFamily: "'Space Mono',monospace" }}>Upload {label} Document</span><span style={{ marginLeft: "auto", fontSize: 10, color: COLORS.grayMuted }}>JPG, PNG, PDF</span></>
             }
             <input type="file" style={{ display: "none" }} accept=".jpg,.jpeg,.png,.pdf" onChange={e => onUpload(fieldName, e)} disabled={uploading === fieldName} />
           </label>
         ) : (
           <div style={{ border: `1px dashed ${COLORS.midPurple}`, borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 16 }}>📂</span>
+            <FolderOpenIcon size={16} color={COLORS.grayMuted} />
             <span style={{ fontSize: 12, color: COLORS.grayMuted }}>No document uploaded yet</span>
           </div>
         )
@@ -811,7 +936,7 @@ function KycDocWidget({ label, docData, fieldName, editing, uploading, onUpload 
 function KycSection({ initialData, onSaved }) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [uploadingDoc, setUploadingDoc] = useState(null); // "aadhaar" | "pan" | null
+  const [uploadingDoc, setUploadingDoc] = useState(null);
   const [toast, setToast] = useState(null);
 
   const [data, setData] = useState({
@@ -842,14 +967,11 @@ function KycSection({ initialData, onSaved }) {
 
   const set = key => val => setData(d => ({ ...d, [key]: val }));
 
-  // Save all text fields via completeSetup (reuses backend logic)
   const handleSave = async () => {
     setSaving(true);
     try {
       const form = new FormData();
-      // personal/kyc fields
       ["dob", "nationality", "aadhaarNumber", "panNumber"].forEach(k => form.append(k, data[k]));
-      // address fields
       ["state", "district", "pin", "locality", "postOffice"].forEach(k => form.append(k, data[k]));
 
       const res = await fetch(`${API}/profile/complete-setup`, {
@@ -869,7 +991,6 @@ function KycSection({ initialData, onSaved }) {
     }
   };
 
-  // Upload a single KYC doc immediately (using complete-setup multipart)
   const handleDocUpload = async (field, e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -906,21 +1027,17 @@ function KycSection({ initialData, onSaved }) {
   return (
     <>
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-
-        {/* ── Personal Identity ── */}
         <SectionCard editing={editing}>
           {editing && <EditBanner />}
           <SectionHeader title="KYC & Address" subtitle="Identity verification and residential details"
             editing={editing} saving={saving} onToggle={() => editing ? handleSave() : setEditing(true)} />
 
-          {/* DOB & Nationality */}
           <p style={{ fontSize: 10, color: COLORS.accent, fontFamily: "'Space Mono',monospace", letterSpacing: 1, textTransform: "uppercase", marginBottom: 12, marginTop: 0 }}>Personal Identity</p>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px", marginBottom: 20 }}>
             <EditableInput label="Date of Birth" value={data.dob} editing={editing} onChange={set("dob")} type="date" />
             <EditableInput label="Nationality" value={data.nationality} editing={editing} onChange={set("nationality")} />
           </div>
 
-          {/* Address */}
           <div style={{ borderTop: `1px solid ${COLORS.midPurple}55`, paddingTop: 20, marginBottom: 20 }}>
             <p style={{ fontSize: 10, color: COLORS.accent, fontFamily: "'Space Mono',monospace", letterSpacing: 1, textTransform: "uppercase", marginBottom: 12, marginTop: 0 }}>Residential Address</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
@@ -934,7 +1051,6 @@ function KycSection({ initialData, onSaved }) {
             </div>
           </div>
 
-          {/* KYC Numbers */}
           <div style={{ borderTop: `1px solid ${COLORS.midPurple}55`, paddingTop: 20, marginBottom: 20 }}>
             <p style={{ fontSize: 10, color: COLORS.accent, fontFamily: "'Space Mono',monospace", letterSpacing: 1, textTransform: "uppercase", marginBottom: 4, marginTop: 0 }}>KYC Numbers</p>
             <p style={{ fontSize: 11, color: COLORS.grayMuted, marginBottom: 14, marginTop: 0 }}>Sensitive fields are masked when not in edit mode.</p>
@@ -968,30 +1084,15 @@ function KycSection({ initialData, onSaved }) {
             </div>
           </div>
 
-          {/* KYC Documents */}
           <div style={{ borderTop: `1px solid ${COLORS.midPurple}55`, paddingTop: 20 }}>
             <p style={{ fontSize: 10, color: COLORS.accent, fontFamily: "'Space Mono',monospace", letterSpacing: 1, textTransform: "uppercase", marginBottom: 14, marginTop: 0 }}>KYC Documents</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <KycDocWidget
-                label="Aadhaar"
-                docData={aadhaarDoc}
-                fieldName="aadhaar"
-                editing={editing}
-                uploading={uploadingDoc}
-                onUpload={handleDocUpload}
-              />
-              <KycDocWidget
-                label="PAN"
-                docData={panDoc}
-                fieldName="pan"
-                editing={editing}
-                uploading={uploadingDoc}
-                onUpload={handleDocUpload}
-              />
+              <KycDocWidget label="Aadhaar" docData={aadhaarDoc} fieldName="aadhaar" editing={editing} uploading={uploadingDoc} onUpload={handleDocUpload} />
+              <KycDocWidget label="PAN" docData={panDoc} fieldName="pan" editing={editing} uploading={uploadingDoc} onUpload={handleDocUpload} />
             </div>
             {!editing && (
-              <p style={{ fontSize: 11, color: COLORS.grayMuted, marginTop: 12, fontFamily: "'Space Mono',monospace", textAlign: "center" }}>
-                🔒 Your KYC documents are stored securely and never shared.
+              <p style={{ fontSize: 11, color: COLORS.grayMuted, marginTop: 12, fontFamily: "'Space Mono',monospace", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                <LockIcon size={12} color={COLORS.grayMuted} /> Your KYC documents are stored securely and never shared.
               </p>
             )}
           </div>
@@ -1011,7 +1112,6 @@ function calcCompletion(profile) {
   score += (filled / personalFields.length) * 30;
   if ((profile.education || []).filter(e => e.degree && e.institution).length > 0) score += 25;
   if (profile.resumeUrl) score += 20;
-  // KYC fields
   const kycFields = ["dob", "nationality", "aadhaarNumber", "panNumber"];
   const kycFilled = kycFields.filter(f => profile[f]?.trim()).length;
   score += (kycFilled / kycFields.length) * 15;
@@ -1079,10 +1179,10 @@ export default function ProfilePage() {
   };
 
   const tabs = [
-    { id: "personal",  label: "Personal Details", icon: "👤" },
-    { id: "education", label: "Education",         icon: "🎓" },
-    { id: "resume",    label: "Resume",            icon: "📄" },
-    { id: "kyc",       label: "KYC & Address",     icon: "🪪" },
+    { id: "personal",  label: "Personal Details", Icon: UserIcon },
+    { id: "education", label: "Education",         Icon: GraduationCapIcon },
+    { id: "resume",    label: "Resume",            Icon: FileIcon },
+    { id: "kyc",       label: "KYC & Address",     Icon: IdCardIcon },
   ];
 
   const profilePct = calcCompletion(profile);
@@ -1095,8 +1195,6 @@ export default function ProfilePage() {
     : null;
 
   const initials = `${profile?.firstName?.[0] || ""}${profile?.lastName?.[0] || ""}`.toUpperCase() || "?";
-
-  // ── Profile complete badge ──
   const isProfileComplete = profile?.profileComplete === true;
 
   if (loading) return (
@@ -1133,7 +1231,13 @@ export default function ProfilePage() {
                 <label style={{ position: "absolute", inset: 0, borderRadius: "50%", background: "rgba(0,0,0,0.65)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer", opacity: 0, transition: "opacity 0.2s" }}
                   onMouseEnter={e => e.currentTarget.style.opacity = 1}
                   onMouseLeave={e => e.currentTarget.style.opacity = 0}>
-                  {photoUploading ? <Spinner /> : <><span style={{ fontSize: 18 }}>↑</span><span style={{ fontSize: 9, color: COLORS.accent, fontFamily: "'Space Mono',monospace" }}>Change</span></>}
+                  {photoUploading
+                    ? <Spinner />
+                    : <>
+                        <CameraIcon size={18} color={COLORS.accent} />
+                        <span style={{ fontSize: 9, color: COLORS.accent, fontFamily: "'Space Mono',monospace", marginTop: 4 }}>Change</span>
+                      </>
+                  }
                   <input type="file" style={{ display: "none" }} accept="image/*" onChange={handlePhotoChange} />
                 </label>
               </div>
@@ -1142,19 +1246,18 @@ export default function ProfilePage() {
                 <div style={{ fontWeight: 700, fontSize: 15 }}>{profile?.firstName} {profile?.lastName}</div>
                 <div style={{ fontSize: 11, color: COLORS.grayMuted, marginTop: 2 }}>{profile?.email}</div>
 
-                {/* Profile Complete Badge */}
                 {isProfileComplete ? (
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 8, background: `${COLORS.green}22`, color: COLORS.green, fontSize: 9, fontFamily: "'Space Mono',monospace", padding: "3px 10px", borderRadius: 99, border: `1px solid ${COLORS.green}44` }}>
-                    ✓ Profile Complete
+                    <CircleCheckIcon size={9} color={COLORS.green} /> Profile Complete
                   </span>
                 ) : (
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 8, background: `${COLORS.amber}18`, color: COLORS.amber, fontSize: 9, fontFamily: "'Space Mono',monospace", padding: "3px 10px", borderRadius: 99, border: `1px solid ${COLORS.amber}44` }}>
-                    ◑ Setup Incomplete
+                    <CircleHalfIcon size={9} color={COLORS.amber} /> Setup Incomplete
                   </span>
                 )}
 
-                <span style={{ display: "inline-block", marginTop: 6, background: `${COLORS.green}22`, color: COLORS.green, fontSize: 9, fontFamily: "'Space Mono',monospace", padding: "3px 10px", borderRadius: 99, border: `1px solid ${COLORS.green}44` }}>
-                  ● Available for Interviews
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 6, background: `${COLORS.green}22`, color: COLORS.green, fontSize: 9, fontFamily: "'Space Mono',monospace", padding: "3px 10px", borderRadius: 99, border: `1px solid ${COLORS.green}44` }}>
+                  <CircleDotIcon size={6} color={COLORS.green} /> Available for Interviews
                 </span>
               </div>
 
@@ -1167,16 +1270,16 @@ export default function ProfilePage() {
                   <div style={{ width: `${profilePct}%`, height: "100%", background: `linear-gradient(90deg, ${COLORS.accent}, ${pctColor})`, borderRadius: 99, transition: "width 0.5s ease" }} />
                 </div>
                 <p style={{ fontSize: 10, color: COLORS.grayMuted, marginTop: 6 }}>
-                  {profilePct < 50 ? "Fill in your details to get started" : profilePct < 100 ? "Almost there — complete your KYC!" : "Profile complete 🎉"}
+                  {profilePct < 50 ? "Fill in your details to get started" : profilePct < 100 ? "Almost there — complete your KYC!" : "Profile complete"}
                 </p>
               </div>
             </div>
 
             {/* Nav Tabs */}
             <div style={{ background: `linear-gradient(135deg, ${COLORS.cardDark} 60%, ${COLORS.darkPurple} 100%)`, borderRadius: 18, padding: 10, border: `1px solid ${COLORS.midPurple}55` }}>
-              {tabs.map(tab => (
-                <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{ width: "100%", textAlign: "left", padding: "10px 14px", borderRadius: 10, display: "flex", alignItems: "center", gap: 10, fontSize: 13, fontWeight: 500, cursor: "pointer", border: "none", marginBottom: 2, background: activeTab === tab.id ? `linear-gradient(90deg, ${COLORS.accent}18, transparent)` : "transparent", color: activeTab === tab.id ? COLORS.accent : COLORS.grayMuted, borderLeft: activeTab === tab.id ? `3px solid ${COLORS.accent}` : "3px solid transparent", transition: "all 0.15s" }}>
-                  <span>{tab.icon}</span> {tab.label}
+              {tabs.map(({ id, label, Icon }) => (
+                <button key={id} onClick={() => setActiveTab(id)} style={{ width: "100%", textAlign: "left", padding: "10px 14px", borderRadius: 10, display: "flex", alignItems: "center", gap: 10, fontSize: 13, fontWeight: 500, cursor: "pointer", border: "none", marginBottom: 2, background: activeTab === id ? `linear-gradient(90deg, ${COLORS.accent}18, transparent)` : "transparent", color: activeTab === id ? COLORS.accent : COLORS.grayMuted, borderLeft: activeTab === id ? `3px solid ${COLORS.accent}` : "3px solid transparent", transition: "all 0.15s" }}>
+                  <Icon size={15} color={activeTab === id ? COLORS.accent : COLORS.grayMuted} /> {label}
                 </button>
               ))}
             </div>
