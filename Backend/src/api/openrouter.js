@@ -4,19 +4,10 @@ import dotenv from "dotenv";
 dotenv.config();
 
 // ============================
-// OPENROUTER CLIENT
+// NVIDIA CLIENT
 // ============================
 
-const openrouter = axios.create({
-  baseURL: "https://openrouter.ai/api/v1",
 
-  timeout: 20000,
-
-  headers: {
-    Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-    "Content-Type": "application/json",
-  },
-});
 
 // ============================
 // LANGUAGE DETECTION
@@ -24,8 +15,6 @@ const openrouter = axios.create({
 
 const detectLanguage = (domain = "") => {
   const text = domain.toLowerCase();
-
-  // Frontend
 
   if (
     text.includes("frontend") ||
@@ -37,16 +26,12 @@ const detectLanguage = (domain = "") => {
     return "JavaScript";
   }
 
-  // TypeScript
-
   if (
     text.includes("typescript") ||
     text.includes("ts")
   ) {
     return "TypeScript";
   }
-
-  // Python
 
   if (
     text.includes("python") ||
@@ -56,16 +41,12 @@ const detectLanguage = (domain = "") => {
     return "Python";
   }
 
-  // Java
-
   if (
     text.includes("java") &&
     !text.includes("javascript")
   ) {
     return "Java";
   }
-
-  // C++
 
   if (
     text.includes("c++") ||
@@ -74,16 +55,12 @@ const detectLanguage = (domain = "") => {
     return "C++";
   }
 
-  // C#
-
   if (
     text.includes("c#") ||
     text.includes(".net")
   ) {
     return "C#";
   }
-
-  // PHP
 
   if (
     text.includes("php") ||
@@ -92,16 +69,12 @@ const detectLanguage = (domain = "") => {
     return "PHP";
   }
 
-  // Go
-
   if (
     text.includes("golang") ||
     text.includes("go developer")
   ) {
     return "Go";
   }
-
-  // Backend / Fullstack
 
   if (
     text.includes("backend") ||
@@ -110,8 +83,6 @@ const detectLanguage = (domain = "") => {
   ) {
     return "JavaScript";
   }
-
-  // Default
 
   return "Python";
 };
@@ -205,7 +176,7 @@ const removeDuplicateQuestions = (
           (q) =>
             q.question
               ?.trim()
-              .toLowerCase() ===
+              ?.toLowerCase() ===
             normalized
         )
       );
@@ -227,14 +198,12 @@ const createPrompt = ({
   aiPrompt,
 }) => {
 
-  // CODING QUESTIONS
-
   if (type === "CODING") {
 
     return `
-    ${aiPrompt || ""}
-    
-    Generate ${count} unique ${difficulty} coding interview questions for ${domain}.
+${aiPrompt || ""}
+
+Generate ${count} unique ${difficulty} coding interview questions for ${domain}.
 
 Rules:
 - Return ONLY valid JSON
@@ -254,12 +223,10 @@ Format:
 `;
   }
 
-  // MCQ QUESTIONS
-
   return `
-  ${aiPrompt || ""}
-  
-  Generate ${count} unique ${difficulty} MCQ interview questions for ${domain}.
+${aiPrompt || ""}
+
+Generate ${count} unique ${difficulty} MCQ interview questions for ${domain}.
 
 Rules:
 - Return ONLY valid JSON
@@ -286,32 +253,45 @@ const generateBatch = async ({
   prompt,
 }) => {
 
-  const response =
-    await openrouter.post(
-      "/chat/completions",
-      {
-        model:
-        "openrouter/free",
-        // "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-        // "inclusionai/ring-2.6-1t:free",
+  const response = await axios.post(
+    "https://integrate.api.nvidia.com/v1/chat/completions",
 
-        messages: [
-          {
-            role: "system",
-            content:
-              "Return ONLY valid JSON array.",
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
+    {
+      model: "meta/llama-3.1-8b-instruct",
 
-        temperature: 0.3,
-        top_p: 0.8,
-        max_tokens: 1200,
-      }
-    );
+      messages: [
+        {
+          role: "system",
+          content:
+            "Return ONLY valid JSON array.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+
+      max_tokens: 4096,
+      temperature: 0.3,
+      top_p: 0.8,
+
+      stream: false,
+
+      chat_template_kwargs: {
+        enable_thinking: false,
+      },
+    },
+
+    {
+      headers: {
+        Authorization:
+          `Bearer ${process.env.NVIDIA_API_KEY}`,
+
+        "Content-Type":
+          "application/json",
+      },
+    }
+  );
 
   const raw =
     response.data?.choices?.[0]
@@ -353,10 +333,6 @@ async ({
     const starterCode =
       getStarterCode(language);
 
-    // ============================
-    // SPLIT INTO BATCHES
-    // ============================
-
     const batchSize = 2;
 
     const totalBatches =
@@ -379,7 +355,7 @@ async ({
           remaining
         );
 
-        const prompt =
+      const prompt =
         createPrompt({
           domain,
           difficulty,
@@ -398,23 +374,11 @@ async ({
       );
     }
 
-    // ============================
-    // PARALLEL EXECUTION
-    // ============================
-
     const results =
       await Promise.all(requests);
 
-    // ============================
-    // FLATTEN ARRAY
-    // ============================
-
     const questions =
       results.flat();
-
-    // ============================
-    // REMOVE DUPLICATES
-    // ============================
 
     const uniqueQuestions =
       removeDuplicateQuestions(

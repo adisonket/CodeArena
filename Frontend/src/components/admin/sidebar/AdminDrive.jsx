@@ -12,6 +12,7 @@ import axios from "axios";
 import { useEffect } from "react";
 import { CalendarDays } from "lucide-react";
 import CreateDriveModal from "../drive/CreateDriveModal";
+import { useSearchParams } from "react-router-dom";
 
 
 // ── mock data ──────────────────────────────────────────────────────────────────
@@ -202,7 +203,7 @@ const DriveDrawer = ({
     const [allCandidates, setAllCandidates] = useState([]);
     const [selectedCandidates, setSelectedCandidates] = useState([]);
     const [assignLoading, setAssignLoading] = useState(false);
-    const [fetchingCandidates, setFetchingCandidates] = useState(false);
+    const [fetchingCandidates, setFetchingCandidates] = useState(false);    
 
     const fetchCandidates = async () => {
 
@@ -1131,8 +1132,35 @@ const AdminDrive = () => {
     const [showCreate, setShowCreate] = useState(false);
     const [editingDrive, setEditingDrive] = useState(null);
     const [loading, setLoading]       = useState(true);
-
     const statuses = ["All","Active","Completed","On-Hold","Draft"];
+
+    const [searchParams] = useSearchParams();
+
+    useEffect(() => {
+
+        const driveId =
+            searchParams.get("drive");
+    
+        if (
+            driveId &&
+            drives.length > 0
+        ) {
+    
+            const foundDrive =
+                drives.find(
+                    (d) => d._id === driveId
+                );
+    
+            if (foundDrive) {
+    
+                setSelected(
+                    foundDrive
+                );
+            }
+        }
+    
+    }, [searchParams, drives]);
+
 
     useEffect(() => {
         const fetchDrives = async () => {
@@ -1147,6 +1175,37 @@ const AdminDrive = () => {
         };
         fetchDrives();
     }, []);
+
+    useEffect(() => {
+
+        const selectedDriveId =
+            localStorage.getItem(
+                "selectedDriveId"
+            );
+    
+        if (
+            selectedDriveId &&
+            drives.length > 0
+        ) {
+    
+            const foundDrive =
+                drives.find(
+                    (d) =>
+                        d._id === selectedDriveId
+                );
+    
+            if (foundDrive) {
+    
+                setSelected(foundDrive);
+    
+                // cleanup
+                localStorage.removeItem(
+                    "selectedDriveId"
+                );
+            }
+        }
+    
+    }, [drives]);
 
     const filtered = drives
         .filter(d => {
