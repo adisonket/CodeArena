@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { animate } from "framer-motion";
 import { motion, AnimatePresence } from "framer-motion";
+
 import {
     Users,
     Search,
@@ -119,6 +120,17 @@ const CandidateDrawer = ({
 }) => {
     if (!candidate) return null;
     const st = statusStyle[candidate.status] ?? statusStyle["Active"];
+    const [showAllDrives, setShowAllDrives] = useState(false);
+    const [showShortlistModal, setShowShortlistModal] = useState(false);
+    const [selectedCandidate, setSelectedCandidate] =useState(null);
+    const [aiGenerating, setAiGenerating] = useState(false);
+
+    const [mailData, setMailData] = useState({
+        subject: "",
+        body: "",
+    });
+     const [sendingMail, setSendingMail] = useState(false);
+
 
     return (
         <>
@@ -178,14 +190,174 @@ const CandidateDrawer = ({
                     </div>
 
                     {/* drive */}
-                    <div className="rounded-xl p-4 border border-indigo-500/20 flex items-center gap-3"
-                        style={{ background: "rgba(99,102,241,0.07)" }}>
-                        <Briefcase size={16} className="text-indigo-400 shrink-0" />
-                        <div>
-                            <p className="text-white/40 text-[10px] mb-0.5">Applied Drive</p>
-                            <p className="text-white font-semibold text-sm">{candidate.drive}</p>
-                        </div>
-                    </div>
+                        {/* applied drives */}
+                        <section>
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                    <Briefcase
+                                        size={14}
+                                        className="text-indigo-400"
+                                    />
+
+                                    <p className="text-white/35 text-[10px] uppercase tracking-widest font-semibold">
+                                        Applied Drives
+                                    </p>
+                                </div>
+
+                                <div
+                                    className="px-2 py-1 rounded-lg text-[10px] font-semibold"
+                                    style={{
+                                        background:
+                                            "rgba(99,102,241,0.12)",
+                                        border:
+                                            "1px solid rgba(99,102,241,0.2)",
+                                        color: "#a5b4fc",
+                                    }}
+                                >
+                                    {candidate.drives?.length || 0}
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                {(showAllDrives
+                                    ? candidate.drives
+                                    : candidate.drives?.slice(0, 3)
+                                )?.map((drive, index) => {
+
+                                    const driveStatus =
+                                        statusStyle[
+                                        drive.status
+                                        ] ||
+                                        statusStyle["Active"];
+
+                                    return (
+                                        <motion.button
+                                            type="button"
+                                            key={drive.id || index}
+                                            onClick={() => {
+
+                                                // store selected drive
+                                                localStorage.setItem(
+                                                    "selectedDriveId",
+                                                    drive.id
+                                                );
+                                            
+                                                // switch admin tab
+                                                localStorage.setItem(
+                                                    "adminActiveTab",
+                                                    "drives"
+                                                );
+                                            
+                                                // close drawer
+                                                onClose();
+                                            
+                                                // trigger tab refresh
+                                                window.location.reload();
+                                            }}
+                                            initial={{
+                                                opacity: 0,
+                                                y: 10,
+                                            }}
+                                            animate={{
+                                                opacity: 1,
+                                                y: 0,
+                                            }}
+                                            transition={{
+                                                delay: index * 0.05,
+                                            }}
+                                            className="w-full text-left rounded-2xl border border-white/6 p-4 transition-all hover:border-indigo-500/25 hover:bg-indigo-500/[0.03] hover:scale-[1.01] active:scale-[0.99]"
+                                            style={{
+                                                background:
+                                                    "linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015))",
+                                            }}
+                                        >
+
+                                            <div className="flex items-start justify-between gap-3">
+
+                                                <div className="flex items-start gap-3 min-w-0 flex-1">
+
+                                                    <div
+                                                        className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                                                        style={{
+                                                            background:
+                                                                "rgba(99,102,241,0.12)",
+                                                            border:
+                                                                "1px solid rgba(99,102,241,0.18)",
+                                                        }}
+                                                    >
+                                                        <Briefcase
+                                                            size={15}
+                                                            className="text-indigo-400"
+                                                        />
+                                                    </div>
+
+                                                    <div className="min-w-0 flex-1">
+
+                                                        <p className="text-white text-sm font-semibold truncate">
+                                                            {drive.name}
+                                                        </p>
+
+                                                        <div className="flex items-center gap-3 mt-2 flex-wrap">
+
+                                                            <div className="flex items-center gap-1">
+                                                                <Star
+                                                                    size={11}
+                                                                    className="text-amber-400"
+                                                                />
+
+                                                                <span className="text-white/55 text-[11px]">
+                                                                    Score: {drive.score || 0}
+                                                                </span>
+                                                            </div>
+
+                                                            <div className="flex items-center gap-1">
+                                                                <Calendar
+                                                                    size={11}
+                                                                    className="text-indigo-400"
+                                                                />
+
+                                                                <span className="text-white/40 text-[11px]">
+                                                                    {fmt(drive.date)}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <span
+                                                    className={`px-2 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap ${driveStatus.cls}`}
+                                                >
+                                                    {drive.status}
+                                                </span>
+                                            </div>
+                                        </motion.button>
+                                    );
+                                })}
+                            </div>
+
+                            {candidate.drives?.length > 3 && (
+                                <button
+                                    onClick={() =>
+                                        setShowAllDrives(
+                                            !showAllDrives
+                                        )
+                                    }
+                                    className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold border border-white/8 text-indigo-300 hover:bg-indigo-500/10 transition"
+                                >
+                                    {showAllDrives
+                                        ? "Show Less"
+                                        : `See More (${candidate.drives.length - 3})`}
+
+                                    <ChevronDown
+                                        size={13}
+                                        className={`transition-transform ${showAllDrives
+                                                ? "rotate-180"
+                                                : ""
+                                            }`}
+                                    />
+                                </button>
+                            )}
+                        </section>
 
                     {/* contact */}
                     <section>
@@ -495,6 +667,29 @@ const CandidateDrawer = ({
                         {/* shortlist */}
 
                         <button
+                            onClick={() => {
+
+                                setSelectedCandidate(candidate);
+
+                                setMailData({
+                                    subject:
+                                        `Congratulations ${candidate.firstName} - You Have Been Shortlisted`,
+
+                                    body:
+                                        `Hello ${candidate.firstName},
+
+                                        Congratulations!
+
+                                        We are pleased to inform you that you have been shortlisted for the next stage of the recruitment process at CodeArena.
+
+                                        Our team will contact you shortly with further details.
+
+                                        Best Regards,
+                                        CodeArena Recruitment Team`,
+                                });
+
+                                setShowShortlistModal(true);
+                            }}
                             className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold text-white transition hover:scale-[1.01]"
                             style={{
                                 background:
@@ -529,11 +724,359 @@ const CandidateDrawer = ({
                             }}
                         >
                             <UserX size={13} />
-                            Delete
+                            Delete Candidate
                         </button>
 
                     </div>
             </motion.aside>
+                <AnimatePresence>
+
+                    {showShortlistModal &&
+                        selectedCandidate && (
+
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="fixed inset-0 z-[140] flex items-center justify-center p-4"
+                                style={{
+                                    background:
+                                        "rgba(0,0,0,0.78)",
+                                    backdropFilter: "blur(14px)",
+                                }}
+                            >
+
+                                <motion.div
+                                    initial={{
+                                        opacity: 0,
+                                        scale: 0.92,
+                                        y: 24,
+                                    }}
+                                    animate={{
+                                        opacity: 1,
+                                        scale: 1,
+                                        y: 0,
+                                    }}
+                                    exit={{
+                                        opacity: 0,
+                                        scale: 0.92,
+                                        y: 24,
+                                    }}
+                                    transition={{
+                                        type: "spring",
+                                        stiffness: 260,
+                                        damping: 22,
+                                    }}
+                                    className="w-full max-w-2xl rounded-[32px] border border-white/10 overflow-hidden"
+                                    style={{
+                                        background:
+                                            "linear-gradient(180deg, rgba(12,12,24,0.98), rgba(18,18,32,0.98))",
+                                        boxShadow:
+                                            "0 20px 80px rgba(0,0,0,0.55)",
+                                    }}
+                                >
+
+                                    {/* top glow */}
+
+                                    <div
+                                        className="h-[2px]"
+                                        style={{
+                                            background:
+                                                "linear-gradient(90deg,#6366f1,#8b5cf6,#a855f7,transparent)",
+                                        }}
+                                    />
+
+                                    {/* header */}
+
+                                    <div className="px-7 pt-7 pb-5 border-b border-white/6">
+
+                                        <div className="flex items-start justify-between gap-4">
+
+                                            <div className="flex items-start gap-4">
+
+                                                <div
+                                                    className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0"
+                                                    style={{
+                                                        background:
+                                                            "rgba(99,102,241,0.14)",
+                                                        border:
+                                                            "1px solid rgba(99,102,241,0.25)",
+                                                    }}
+                                                >
+                                                    <Mail
+                                                        size={22}
+                                                        className="text-indigo-400"
+                                                    />
+                                                </div>
+
+                                                <div>
+
+                                                    <p className="text-indigo-300 text-xs font-semibold uppercase tracking-[0.18em]">
+                                                        Candidate Mail
+                                                    </p>
+
+                                                    <h2 className="text-white text-2xl font-bold mt-2">
+                                                        Shortlist Candidate
+                                                    </h2>
+
+                                                    <p className="text-white/35 text-sm mt-2">
+                                                        Send shortlist email to{" "}
+                                                        <span className="text-white/70">
+                                                            {selectedCandidate.email}
+                                                        </span>
+                                                    </p>
+
+                                                </div>
+                                            </div>
+
+                                            <button
+                                                onClick={() =>
+                                                    setShowShortlistModal(false)
+                                                }
+                                                className="w-9 h-9 rounded-xl flex items-center justify-center text-white/30 hover:text-white hover:bg-white/6 transition"
+                                            >
+                                                <X size={16} />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* body */}
+
+                                    <div className="px-7 py-6 space-y-5">
+
+                                        {/* subject */}
+
+                                        <div className="space-y-2">
+
+                                            <p className="text-[10px] uppercase tracking-widest font-semibold text-white/35">
+                                                Email Subject
+                                            </p>
+
+                                            <input
+                                                value={mailData.subject}
+                                                onChange={(e) =>
+                                                    setMailData((prev) => ({
+                                                        ...prev,
+                                                        subject:
+                                                            e.target.value,
+                                                    }))
+                                                }
+                                                placeholder="Enter mail subject..."
+                                                className="w-full px-4 py-3 rounded-2xl text-sm text-white/80 placeholder-white/20 border border-white/8 outline-none focus:border-indigo-500/50 transition"
+                                                style={{
+                                                    background:
+                                                        "rgba(255,255,255,0.03)",
+                                                }}
+                                            />
+                                        </div>
+
+                                        {/* body */}
+
+                                        <div className="space-y-2">
+
+                                            <p className="text-[10px] uppercase tracking-widest font-semibold text-white/35">
+                                                Email Body
+                                            </p>
+
+                                            <textarea
+                                                rows={10}
+                                                value={mailData.body}
+                                                onChange={(e) =>
+                                                    setMailData((prev) => ({
+                                                        ...prev,
+                                                        body:
+                                                            e.target.value,
+                                                    }))
+                                                }
+                                                placeholder="Write email..."
+                                                className="w-full px-4 py-3 rounded-2xl text-sm text-white/80 placeholder-white/20 border border-white/8 outline-none focus:border-indigo-500/50 transition resize-none"
+                                                style={{
+                                                    background:
+                                                        "rgba(255,255,255,0.03)",
+                                                    lineHeight: "1.7",
+                                                }}
+                                            />
+                                        <button
+                                            onClick={async () => {
+
+                                                try {
+
+                                                    setAiGenerating(true);
+
+                                                    const response = await axios.post(
+                                                        "https://integrate.api.nvidia.com/v1/chat/completions",
+                                                        {
+                                                            model: "meta/llama-3.1-8b-instruct",
+
+                                                            messages: [
+                                                                {
+                                                                    role: "system",
+                                                                    content:
+                                                                        "You are a professional HR email assistant. Return ONLY valid JSON.",
+                                                                },
+
+                                                                {
+                                                                    role: "user",
+                                                                    content: `
+                                                                    Generate a professional shortlist email.
+
+                                                                    Candidate Name:
+                                                                    ${selectedCandidate.firstName} ${selectedCandidate.lastName}
+
+                                                                    Position:
+                                                                    ${candidate.drive || "Software Engineer"}
+
+                                                                    Company:
+                                                                    CodeArena
+
+                                                                    Return response ONLY in JSON format:
+
+                                                                    {
+                                                                    "subject": "",
+                                                                    "body": ""
+                                                                    }
+                                                                                                `,
+                                                                },
+                                                            ],
+
+                                                            temperature: 0.5,
+                                                            top_p: 0.8,
+                                                            max_tokens: 1024,
+                                                            stream: false,
+
+                                                            chat_template_kwargs: {
+                                                                enable_thinking: false,
+                                                            },
+                                                        },
+
+                                                        {
+                                                            headers: {
+                                                                Authorization: `Bearer ${import.meta.env.VITE_NVIDIA_API_KEY}`,
+                                                                "Content-Type": "application/json",
+                                                            },
+                                                        }
+                                                    );
+
+                                                    const raw =
+                                                        response.data?.choices?.[0]?.message?.content || "{}";
+
+                                                    let cleaned = raw
+                                                        .replace(/```json/g, "")
+                                                        .replace(/```/g, "")
+                                                        .trim();
+
+                                                    console.log(cleaned);
+
+                                                    const data = JSON.parse(cleaned);
+
+                                                    setMailData({
+                                                        subject: data.subject || "",
+                                                        body: data.body || "",
+                                                    });
+
+                                                } catch (error) {
+
+                                                    console.log(error);
+
+                                                } finally {
+
+                                                    setAiGenerating(false);
+                                                }
+                                            }}
+                                            disabled={aiGenerating}
+                                            className="w-full mt-3 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-semibold border border-indigo-500/20 text-indigo-200 hover:bg-indigo-500/10 transition disabled:opacity-50"
+                                            style={{
+                                                background:
+                                                    "rgba(99,102,241,0.08)",
+                                            }}
+                                        >
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                width="16"
+                                                height="16"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                stroke="currentColor"
+                                                strokeWidth="2"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    d="M12 3l1.912 5.813L20 11l-6.088 2.187L12 19l-1.912-5.813L4 11l6.088-2.187L12 3z"
+                                                />
+                                            </svg>
+
+                                            {aiGenerating
+                                                ? "Generating..."
+                                                : "Auto AI Fill - Generate Email"}
+                                        </button>
+                                        </div>
+                                    </div>
+
+                                    {/* footer */}
+
+                                    <div className="px-7 py-5 border-t border-white/6 flex items-center justify-end gap-3">
+
+                                        <button
+                                            onClick={() =>
+                                                setShowShortlistModal(false)
+                                            }
+                                            className="px-5 py-2.5 rounded-2xl text-sm font-semibold border border-white/10 text-white/60 hover:bg-white/5 hover:text-white transition"
+                                        >
+                                            Cancel
+                                        </button>
+
+                                        <button
+                                            onClick={async () => {
+
+                                                try {
+
+                                                    setSendingMail(true);
+
+                                                    await axios.post(
+                                                        "http://localhost:4000/api/mail/shortlist",
+                                                        {
+                                                            email:
+                                                                selectedCandidate.email,
+
+                                                            subject:
+                                                                mailData.subject,
+
+                                                            body:
+                                                                mailData.body,
+                                                        }
+                                                    );
+
+                                                    setShowShortlistModal(false);
+
+                                                } catch (error) {
+
+                                                    console.log(error);
+
+                                                } finally {
+
+                                                    setSendingMail(false);
+                                                }
+                                            }}
+                                            disabled={sendingMail}
+                                            className="px-6 py-2.5 rounded-2xl text-sm font-semibold text-white disabled:opacity-50 transition"
+                                            style={{
+                                                background:
+                                                    "linear-gradient(135deg,#6366f1,#8b5cf6)",
+                                            }}
+                                        >
+                                            {sendingMail
+                                                ? "Sending..."
+                                                : "Send Mail"}
+                                        </button>
+
+                                    </div>
+
+                                </motion.div>
+                            </motion.div>
+                        )}
+
+                </AnimatePresence>
         </AnimatePresence>
         </>
     );
@@ -569,6 +1112,7 @@ const CandidatesPage = () => {
     const [selected, setSelected] = useState(null);
     const [sortBy, setSortBy] = useState("name");
     const [candidates, setCandidates] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteCandidateData, setDeleteCandidateData] = useState(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
@@ -1134,6 +1678,7 @@ const CandidatesPage = () => {
                         setDeleteCandidateData
                     }
                 />
+                
             </div>
         </>
         
