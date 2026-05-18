@@ -903,43 +903,75 @@ const CandidateDrawer = ({
 
                                                     setAiGenerating(true);
 
-                                                    const prompt =
-                                                        `Generate a professional shortlist email for a candidate.
+                                                    const response = await axios.post(
+                                                        "https://integrate.api.nvidia.com/v1/chat/completions",
+                                                        {
+                                                            model: "meta/llama-3.1-8b-instruct",
 
-                                                            Candidate Name:
-                                                            ${selectedCandidate.firstName} ${selectedCandidate.lastName}
+                                                            messages: [
+                                                                {
+                                                                    role: "system",
+                                                                    content:
+                                                                        "You are a professional HR email assistant. Return ONLY valid JSON.",
+                                                                },
 
-                                                            Position:
-                                                            ${candidate.drive}
+                                                                {
+                                                                    role: "user",
+                                                                    content: `
+                                                                    Generate a professional shortlist email.
 
-                                                            Company:
-                                                            CodeArena
+                                                                    Candidate Name:
+                                                                    ${selectedCandidate.firstName} ${selectedCandidate.lastName}
 
-                                                            Return response in JSON format:
-                                                            {
-                                                            "subject": "",
-                                                            "body": ""
-                                                            }`;
+                                                                    Position:
+                                                                    ${candidate.drive || "Software Engineer"}
 
-                                                    const response =
-                                                        await axios.post(
-                                                            "http://localhost:4000/api/ai/generate-email",
-                                                            {
-                                                                prompt,
-                                                            }
-                                                        );
+                                                                    Company:
+                                                                    CodeArena
 
-                                                    const data =
-                                                        response.data;
+                                                                    Return response ONLY in JSON format:
+
+                                                                    {
+                                                                    "subject": "",
+                                                                    "body": ""
+                                                                    }
+                                                                                                `,
+                                                                },
+                                                            ],
+
+                                                            temperature: 0.5,
+                                                            top_p: 0.8,
+                                                            max_tokens: 1024,
+                                                            stream: false,
+
+                                                            chat_template_kwargs: {
+                                                                enable_thinking: false,
+                                                            },
+                                                        },
+
+                                                        {
+                                                            headers: {
+                                                                Authorization: `Bearer ${import.meta.env.VITE_NVIDIA_API_KEY}`,
+                                                                "Content-Type": "application/json",
+                                                            },
+                                                        }
+                                                    );
+
+                                                    const raw =
+                                                        response.data?.choices?.[0]?.message?.content || "{}";
+
+                                                    let cleaned = raw
+                                                        .replace(/```json/g, "")
+                                                        .replace(/```/g, "")
+                                                        .trim();
+
+                                                    console.log(cleaned);
+
+                                                    const data = JSON.parse(cleaned);
 
                                                     setMailData({
-                                                        subject:
-                                                            data.subject ||
-                                                            "",
-
-                                                        body:
-                                                            data.body ||
-                                                            "",
+                                                        subject: data.subject || "",
+                                                        body: data.body || "",
                                                     });
 
                                                 } catch (error) {
